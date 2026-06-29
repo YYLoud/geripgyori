@@ -24292,7 +24292,7 @@ async function odUpload() {
       _OD.instance = new msal.PublicClientApplication({
         auth: { clientId: _OD.clientId,
                 authority: 'https://login.microsoftonline.com/' + _OD.tenantId,
-                redirectUri: location.origin + location.pathname },
+                redirectUri: 'https://yyloud.github.io/geripgyori/' },
         cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
       });
       await _OD.instance.initialize();
