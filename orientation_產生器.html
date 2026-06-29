@@ -327,9 +327,9 @@
       產生並下載文件
     </button>
 
-    <button class="btn od-btn" id="od-upload-btn" onclick="ODHelper.upload()" style="display:none;background:#0078D4;border-color:#0078D4;margin-top:8px;">
+    <button class="btn" id="od-upload-btn" onclick="odUpload()" disabled style="background:#0078D4;border-color:#0078D4;margin-top:8px;opacity:0.45;">
       <span class="btn-icon">☁</span>
-      <span class="od-label">上傳到 OneDrive</span>
+      <span class="od-label">先產生文件，再上傳到 OneDrive</span>
     </button>
 
     <div class="status" id="status">
@@ -341,8 +341,6 @@
   <div class="footer">僅供院內使用　文件自動產生，無需網路連線</div>
 </div>
 
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-<script src="onedrive.js"></script>
 <script>
 var docx = (function(exports) {
   "use strict";var __defProp = Object.defineProperty;
@@ -24245,11 +24243,85 @@ async function handleGenerate() {
     a.click();
     URL.revokeObjectURL(url);
     setStatus('success', `✓ 下載完成：${filename}`);
-    if (window.ODHelper) ODHelper.setBlob(blob, filename);
+    odSetBlob(blob, filename);
   } catch (err) {
     setStatus('error', '產生失敗：' + err.message);
     console.error(err);
   } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── OneDrive upload ──────────────────────────────────────────
+const _OD = {
+  clientId: 'c949038d-a9e5-4f00-995b-486faa9ef71b',
+  tenantId: '685b9a1c-227e-4acf-be0a-428e5ba2438e',
+  folder:   '老年醫學科',
+  scopes:   ['Files.ReadWrite', 'User.Read'],
+  instance: null, account: null
+};
+
+function odSetBlob(blob, filename) {
+  window._odBlob = blob;
+  window._odFilename = filename;
+  const btn = document.getElementById('od-upload-btn');
+  if (!btn) return;
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.querySelector('.od-label').textContent = '上傳到 OneDrive';
+}
+
+async function odUpload() {
+  const btn = document.getElementById('od-upload-btn');
+  const label = btn.querySelector('.od-label');
+  if (!window._odBlob) { alert('請先產生文件'); return; }
+  btn.disabled = true;
+  label.textContent = '載入認證模組…';
+  try {
+    if (!window.msal) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    if (!_OD.instance) {
+      _OD.instance = new msal.PublicClientApplication({
+        auth: { clientId: _OD.clientId,
+                authority: 'https://login.microsoftonline.com/' + _OD.tenantId,
+                redirectUri: location.origin + location.pathname },
+        cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+      });
+      await _OD.instance.initialize();
+      const accs = _OD.instance.getAllAccounts();
+      if (accs.length) _OD.account = accs[0];
+    }
+    label.textContent = '登入中…';
+    const req = { scopes: _OD.scopes, account: _OD.account };
+    let token;
+    try {
+      const r = await _OD.instance.acquireTokenSilent(req);
+      _OD.account = r.account; token = r.accessToken;
+    } catch {
+      const r = await _OD.instance.acquireTokenPopup(req);
+      _OD.account = r.account; token = r.accessToken;
+    }
+    label.textContent = '上傳中…';
+    const path = encodeURIComponent(_OD.folder + '/' + window._odFilename);
+    const res = await fetch(
+      'https://graph.microsoft.com/v1.0/me/drive/root:/' + path + ':/content',
+      { method: 'PUT',
+        headers: { 'Authorization': 'Bearer ' + token,
+                   'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+        body: window._odBlob }
+    );
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error?.message || 'HTTP ' + res.status); }
+    btn.style.background = btn.style.borderColor = '#0F6E56';
+    label.textContent = '✓ 已上傳至 OneDrive/' + _OD.folder + '/';
+  } catch (err) {
+    btn.style.background = btn.style.borderColor = '#B91C1C';
+    label.textContent = '上傳失敗：' + err.message;
     btn.disabled = false;
   }
 }
