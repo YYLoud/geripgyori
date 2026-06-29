@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老年醫學科 教學工具中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #1B5E8A;
+  --primary-light: #2E86AB;
+  --gold: #C17F24;
+  --gold-bg: #FFF8EE;
+  --accent: #E8F4FD;
+  --dark: #0D1B2A;
+  --text: #1A1A2E;
+  --muted: #6B7A8D;
+  --bg: #F4F7FB;
+  --card: #FFFFFF;
+  --border: #DDE3EC;
+}
+
+body {
+  font-family: 'Noto Serif TC', serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 3rem 1.5rem 4rem;
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(27,94,138,0.07) 0%, transparent 50%),
+    radial-gradient(circle at 85% 85%, rgba(193,127,36,0.05) 0%, transparent 50%);
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 3.5rem;
+}
+
+.hospital-name {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.title-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.title-line {
+  flex: 1;
+  max-width: 80px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold));
+}
+
+.title-line.right {
+  background: linear-gradient(to left, transparent, var(--gold));
+}
+
+.header h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.header h1 span {
+  color: var(--primary);
+}
+
+.header-sub {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+  letter-spacing: 0.04em;
+}
+
+/* Section label */
+.section-label {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Tool cards grid */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.tool-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.75rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(27,94,138,0.04);
+}
+
+.tool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--primary));
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tool-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 6px 24px rgba(27,94,138,0.12);
+  transform: translateY(-2px);
+}
+
+.tool-card:hover::before {
+  opacity: 1;
+}
+
+.tool-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.tool-number {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.7rem;
+  color: var(--border);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.tool-card h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+.tool-card p {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.tool-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 0.25rem;
+}
+
+.tag {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--primary);
+  border: 1px solid #B8D9F0;
+  letter-spacing: 0.02em;
+}
+
+.tag.gold {
+  background: var(--gold-bg);
+  color: var(--gold);
+  border-color: #E8C97B;
+}
+
+.tool-link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.open-link {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.78rem;
+  color: var(--primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.02em;
+}
+
+.open-link svg {
+  width: 13px;
+  height: 13px;
+  transition: transform 0.15s;
+}
+
+.tool-card:hover .open-link svg {
+  transform: translate(2px, -2px);
+}
+
+/* Card accent colors */
+.card-1 { --card-accent: #1B5E8A; }
+.card-2 { --card-accent: #0F6E56; }
+.card-3 { --card-accent: #6B3FA0; }
+.card-4 { --card-accent: #C17F24; }
+
+/* Footer note */
+.footer-note {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 1.5rem;
+  line-height: 1.7;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .tools-grid { grid-template-columns: 1fr; }
+  .header h1 { font-size: 1.5rem; }
+  .title-line { max-width: 40px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <div class="hospital-name">馬偕紀念醫院 · 老年醫學科</div>
+    <div class="title-wrap">
+      <div class="title-line"></div>
+      <h1>教學工具<span>中心</span></h1>
+      <div class="title-line right"></div>
+    </div>
+    <p class="header-sub">PGY 訓練 · 教學管理 · 排班工具</p>
+  </header>
+
+  <div class="section-label">工具總覽</div>
+
+  <div class="tools-grid">
+
+    <a class="tool-card card-1" href="orientation_產生器.html" target="_blank">
+      <span class="tool-number">01</span>
+      <div class="tool-icon">📄</div>
+      <h2>Orientation 產生器</h2>
+      <p>快速產生 PGY 老年醫學科 Orientation 文件，包含訓練目標、課程安排與注意事項。</p>
+      <div class="tool-tags">
+        <span class="tag">PGY 訓練</span>
+        <span class="tag">文件產生</span>
+      </div>
+      <div class="tool-link-row">
+        <span class="open-link">開啟工具
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M7 17L17 7M17 7H7M17 7V17"/>
+          </svg>
+        </span>
+      </div>
+    </a>
+
+    <a class="tool-card card-2" href="pgy_院外訓練scheduling2.html" target="_blank">
+      <span class="tool-number">02</span>
+      <div class="tool-icon">🗓️</div>
+      <h2>院外訓練排班系統</h2>
+      <p>安排 PGY 醫師院外訓練班表，自動計算出院日期，支援匯出排班結果。</p>
+      <div class="tool-tags">
+        <span class="tag">排班</span>
+        <span class="tag">院外訓練</span>
+      </div>
+      <div class="tool-link-row">
+        <span class="open-link">開啟工具
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M7 17L17 7M17 7H7M17 7V17"/>
+          </svg>
+        </span>
+      </div>
+    </a>
+
+    <a class="tool-card card-3" href="老年醫學科教學活動表產生器.html" target="_blank">
+      <span class="tool-number">03</span>
+      <div class="tool-icon">📊</div>
+      <h2>教學活動表產生器</h2>
+      <p>產生老年醫學科月度教學活動表，自動排入教學行程並輸出 Word 檔案。</p>
+      <div class="tool-tags">
+        <span class="tag">教學活動</span>
+        <span class="tag">Word 匯出</span>
+      </div>
+      <div class="tool-link-row">
+        <span class="open-link">開啟工具
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M7 17L17 7M17 7H7M17 7V17"/>
+          </svg>
+        </span>
+      </div>
+    </a>
+
+    <a class="tool-card card-4" href="pgy_老醫名單查詢.html" target="_blank">
+      <span class="tool-number">04</span>
+      <div class="tool-icon">🔍</div>
+      <h2>PGY 訓練名單查詢</h2>
+      <p>上傳年度 PGY 學程表（Excel），自動整理每月來老年醫學科訓練的醫師名單。</p>
+      <div class="tool-tags">
+        <span class="tag gold">新功能</span>
+        <span class="tag">Excel 上傳</span>
+        <span class="tag">名單查詢</span>
+      </div>
+      <div class="tool-link-row">
+        <span class="open-link">開啟工具
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M7 17L17 7M17 7H7M17 7V17"/>
+          </svg>
+        </span>
+      </div>
+    </a>
+
+  </div>
+
+  <hr class="divider">
+
+  <p class="footer-note">
+    所有工具在瀏覽器本地端運行，不會上傳任何資料至外部伺服器。<br>
+    如需嵌入 Google Sites，請將工具部署至 GitHub Pages 或 Netlify，再使用「插入 → 嵌入」功能。
+  </p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGY 老年醫學科訓練名單</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --primary: #1B5E8A;
+  --primary-light: #2E86AB;
+  --gold: #C17F24;
+  --gold-bg: #FFF8EE;
+  --accent: #E8F4FD;
+  --dark: #0D1B2A;
+  --text: #1A1A2E;
+  --muted: #6B7A8D;
+  --bg: #F4F7FB;
+  --card: #FFFFFF;
+  --border: #DDE3EC;
+  --success: #1A6E45;
+  --success-bg: #EAF7F0;
+}
+
+body {
+  font-family: 'Noto Serif TC', '思源宋體', serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(27,94,138,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(193,127,36,0.05) 0%, transparent 50%);
+}
+
+.container {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.header-badge {
+  display: inline-block;
+  background: var(--gold-bg);
+  color: var(--gold);
+  border: 1px solid #E8C97B;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+
+.header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: 0.02em;
+  margin-bottom: 0.4rem;
+}
+
+.header p {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(27,94,138,0.05);
+}
+
+.card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title::before {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 14px;
+  background: var(--primary);
+  border-radius: 2px;
+}
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg);
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--primary);
+  background: var(--accent);
+}
+
+.upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.upload-zone h3 {
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+}
+
+.upload-zone p {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.upload-zone.has-file {
+  border-color: var(--success);
+  background: var(--success-bg);
+}
+
+.upload-zone.has-file h3 {
+  color: var(--success);
+}
+
+/* Month filter */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 0.85rem;
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.month-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.month-btn:hover {
+  border-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.month-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  font-weight: 600;
+}
+
+.month-btn.has-data::after {
+  content: '●';
+  font-size: 8px;
+  vertical-align: super;
+  margin-left: 3px;
+  color: var(--gold);
+}
+
+.month-btn.active.has-data::after {
+  color: #FFD700;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.toggle-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.toggle-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+/* Results */
+.result-section { display: none; }
+.result-section.visible { display: block; }
+
+/* Month view */
+.month-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.month-header {
+  background: var(--primary);
+  color: white;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.month-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.doctor-count {
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+}
+
+.doctor-grid {
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.doctor-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent);
+  border: 1px solid #B8D9F0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.88rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.doctor-tag .program-id {
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: #F0F0F5;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 400;
+}
+
+.doctor-tag .track {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* Table view */
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.schedule-table th {
+  background: var(--primary);
+  color: white;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.schedule-table th:first-child { border-radius: 0; }
+
+.schedule-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.schedule-table tr:last-child td { border-bottom: none; }
+
+.schedule-table tr:hover td { background: var(--accent); }
+
+.track-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.track-内 { background: #DBEAFE; color: #1E40AF; }
+.track-外 { background: #D1FAE5; color: #065F46; }
+.track-不 { background: #FEF3C7; color: #92400E; }
+.track-婦 { background: #FCE7F3; color: #9D174D; }
+.track-兒 { background: #EDE9FE; color: #5B21B6; }
+.track-延 { background: #F3F4F6; color: #374151; }
+
+/* Summary bar */
+.summary-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stat-number {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Selected month highlight */
+.selected-month-view {
+  background: var(--gold-bg);
+  border: 1px solid #E8C97B;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.selected-month-view h3 {
+  font-size: 1rem;
+  color: var(--gold);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--muted);
+}
+
+.empty-state p { font-size: 0.9rem; margin-top: 0.5rem; }
+
+/* Print styles */
+@media print {
+  .upload-section, .filter-section { display: none; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+}
+
+@media (max-width: 640px) {
+  .filter-row { gap: 6px; }
+  .month-btn { padding: 5px 10px; font-size: 0.75rem; }
+  .view-toggle { margin-left: 0; width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-badge">老年醫學科 · 教學管理</div>
+    <h1>PGY 訓練名單查詢</h1>
+    <p>上傳年度學程表，自動整理每月來老年醫學科的 PGY 醫師</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="card upload-section" id="uploadSection">
+    <div class="card-title">上傳訓練名單</div>
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls" />
+      <div class="upload-icon">📋</div>
+      <h3 id="uploadTitle">點擊或拖曳上傳 Excel 檔案</h3>
+      <p id="uploadDesc">支援 .xlsx / .xls 格式（114學年度PGY學程表）</p>
+    </div>
+    <div id="parseError" style="display:none;margin-top:12px;padding:10px 14px;background:#FFF0F0;border:1px solid #FFCCCC;border-radius:8px;font-size:0.82rem;color:#C0392B;"></div>
+  </div>
+
+  <!-- Filter -->
+  <div class="card filter-section" id="filterSection" style="display:none;">
+    <div class="card-title">選擇月份</div>
+    <div class="filter-row">
+      <span class="filter-label">顯示：</span>
+      <button class="month-btn active" onclick="filterMonth('all')" id="btn-all">全部月份</button>
+      <div id="monthButtons" style="display:contents;"></div>
+      <div class="view-toggle">
+        <button class="toggle-btn active" onclick="setView('card')" id="viewCard">卡片</button>
+        <button class="toggle-btn" onclick="setView('table')" id="viewTable">表格</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultSection" class="result-section">
+    <div class="card">
+      <div class="card-title">統計摘要</div>
+      <div class="summary-bar" id="summaryBar"></div>
+      <div id="selectedMonthView" style="display:none;"></div>
+      <div id="resultContent"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let scheduleData = [];
+let allMonths = [];
+let currentFilter = 'all';
+let currentView = 'card';
+
+// Month code to display name
+function monthCodeToName(code) {
+  const s = String(code);
+  if (s.length === 5) {
+    const year = parseInt(s.substring(0, 3));
+    const month = parseInt(s.substring(3, 5));
+    const ad = year + 1911;
+    return `${year}年${month}月 (${ad}/${String(month).padStart(2,'0')})`;
+  }
+  return String(code);
+}
+
+function monthCodeToShort(code) {
+  const s = String(code);
+  if (s.length === 5) {
+    const year = parseInt(s.substring(0, 3));
+    const month = parseInt(s.substring(3, 5));
+    return `${year}/${String(month).padStart(2,'0')}`;
+  }
+  return String(code);
+}
+
+// Detect track from program ID
+function getTrack(program) {
+  if (!program) return '';
+  const p = String(program);
+  if (p.includes('不')) return '不';
+  if (p.includes('外')) return '外';
+  if (p.includes('內')) return '内';
+  if (p.includes('婦')) return '婦';
+  if (p.includes('兒')) return '兒';
+  if (p.includes('延') || p.includes('延-')) return '延';
+  return '';
+}
+
+function getTrackFull(track) {
+  const map = { '不': '不限科', '外': '外科系', '内': '內科系', '婦': '婦產科', '兒': '兒科', '延': '延訓' };
+  return map[track] || track;
+}
+
+// Parse Excel
+function parseExcel(buffer) {
+  const wb = XLSX.read(buffer, { type: 'array' });
+
+  // Try to find the schedule sheet
+  const sheetName = wb.SheetNames.find(n => n.includes('班表') || n.includes('全'));
+  if (!sheetName) {
+    throw new Error('找不到班表工作表（需含「班表」或「全」的工作表名稱）');
+  }
+
+  const ws = wb.Sheets[sheetName];
+  const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // Find header rows (rows with month codes like 11408, 11409...)
+  let headerRowIdx = -1;
+  let monthCols = {};
+
+  for (let i = 0; i < Math.min(raw.length, 10); i++) {
+    const row = raw[i];
+    const monthFound = row.filter(v => {
+      if (typeof v === 'number') {
+        const s = String(Math.floor(v));
+        return s.length === 5 && parseInt(s.substring(0, 3)) >= 100 && parseInt(s.substring(3)) >= 1;
+      }
+      return false;
+    });
+    if (monthFound.length >= 3) {
+      headerRowIdx = i;
+      row.forEach((val, col) => {
+        if (typeof val === 'number') {
+          const s = String(Math.floor(val));
+          if (s.length === 5) monthCols[col] = Math.floor(val);
+        }
+      });
+      break;
+    }
+  }
+
+  if (headerRowIdx === -1) {
+    throw new Error('找不到月份欄位，請確認是正確的學程表格式');
+  }
+
+  // Find name column (col 1 usually) and program col (col 0)
+  const nameCol = 1;
+  const programCol = 0;
+
+  const result = {};
+  const monthList = Object.values(monthCols).sort((a, b) => a - b);
+
+  monthList.forEach(m => result[m] = []);
+
+  // Parse data rows
+  for (let i = headerRowIdx + 1; i < raw.length; i++) {
+    const row = raw[i];
+    if (!row || !row[nameCol]) continue;
+
+    const name = String(row[nameCol]).trim();
+    const program = row[programCol] ? String(row[programCol]).trim() : '';
+
+    // Skip if not a real doctor row
+    if (!name || name.includes('學年度') || name === '學員姓名' || name === '月份/科別') continue;
+
+    Object.entries(monthCols).forEach(([col, monthCode]) => {
+      const dept = row[parseInt(col)];
+      if (dept && String(dept).includes('老醫')) {
+        result[monthCode].push({ name, program });
+      }
+    });
+  }
+
+  return { result, monthList };
+}
+
+// File input
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  handleFile(file);
+});
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+function handleFile(file) {
+  const errEl = document.getElementById('parseError');
+  errEl.style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const { result, monthList } = parseExcel(new Uint8Array(e.target.result));
+      scheduleData = result;
+      allMonths = monthList;
+
+      zone.classList.add('has-file');
+      document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
+      document.getElementById('uploadDesc').textContent = `已載入 ${monthList.length} 個月份的排班資料`;
+
+      buildMonthButtons();
+      renderAll();
+      document.getElementById('filterSection').style.display = 'block';
+      document.getElementById('resultSection').classList.add('visible');
+    } catch (err) {
+      errEl.textContent = '解析失敗：' + err.message;
+      errEl.style.display = 'block';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function buildMonthButtons() {
+  const container = document.getElementById('monthButtons');
+  container.innerHTML = '';
+  allMonths.forEach(m => {
+    const count = scheduleData[m] ? scheduleData[m].length : 0;
+    const btn = document.createElement('button');
+    btn.className = 'month-btn' + (count > 0 ? ' has-data' : '');
+    btn.textContent = monthCodeToShort(m);
+    btn.id = 'btn-' + m;
+    btn.onclick = () => filterMonth(m);
+    container.appendChild(btn);
+  });
+}
+
+function filterMonth(month) {
+  currentFilter = month;
+
+  // Update button states
+  document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById('btn-' + month);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  renderAll();
+}
+
+function setView(view) {
+  currentView = view;
+  document.getElementById('viewCard').classList.toggle('active', view === 'card');
+  document.getElementById('viewTable').classList.toggle('active', view === 'table');
+  renderAll();
+}
+
+function renderAll() {
+  renderSummary();
+  if (currentFilter === 'all') {
+    renderAllMonths();
+  } else {
+    renderSingleMonth(currentFilter);
+  }
+}
+
+function renderSummary() {
+  const totalDoctors = new Set();
+  let totalSlots = 0;
+  allMonths.forEach(m => {
+    (scheduleData[m] || []).forEach(d => {
+      totalDoctors.add(d.name);
+      totalSlots++;
+    });
+  });
+
+  const activeMonths = allMonths.filter(m => (scheduleData[m] || []).length > 0).length;
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="stat-item"><span class="stat-number">${activeMonths}</span><span class="stat-label">個月份有排班</span></div>
+    <div class="stat-item"><span class="stat-number">${totalDoctors.size}</span><span class="stat-label">位不同醫師</span></div>
+    <div class="stat-item"><span class="stat-number">${totalSlots}</span><span class="stat-label">總人次</span></div>
+  `;
+}
+
+function renderAllMonths() {
+  document.getElementById('selectedMonthView').style.display = 'none';
+  const content = document.getElementById('resultContent');
+
+  if (currentView === 'card') {
+    content.innerHTML = allMonths.map(m => {
+      const doctors = scheduleData[m] || [];
+      if (doctors.length === 0) return '';
+      return `
+        <div class="month-card">
+          <div class="month-header">
+            <h3>${monthCodeToName(m)}</h3>
+            <span class="doctor-count">${doctors.length} 位醫師</span>
+          </div>
+          <div class="doctor-grid">
+            ${doctors.map(d => renderDoctorTag(d)).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } else {
+    content.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table class="schedule-table">
+          <thead>
+            <tr>
+              <th>月份</th>
+              <th>姓名</th>
+              <th>學程</th>
+              <th>組別</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allMonths.flatMap(m => {
+              const doctors = scheduleData[m] || [];
+              return doctors.map((d, i) => {
+                const track = getTrack(d.program);
+                return `
+                  <tr>
+                    ${i === 0 ? `<td rowspan="${doctors.length}" style="font-weight:600;color:var(--primary);white-space:nowrap;">${monthCodeToShort(m)}</td>` : ''}
+                    <td>${d.name}</td>
+                    <td style="font-size:0.8rem;color:var(--muted);">${d.program}</td>
+                    <td><span class="track-badge track-${track}">${getTrackFull(track)}</span></td>
+                  </tr>
+                `;
+              });
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
+function renderSingleMonth(month) {
+  const doctors = scheduleData[month] || [];
+  const monthView = document.getElementById('selectedMonthView');
+  const content = document.getElementById('resultContent');
+
+  if (doctors.length === 0) {
+    monthView.style.display = 'none';
+    content.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:2rem;">📭</div>
+        <p>${monthCodeToName(month)} 無 PGY 醫師來老年醫學科訓練</p>
+      </div>
+    `;
+    return;
+  }
+
+  monthView.style.display = 'block';
+  monthView.innerHTML = `
+    <div class="selected-month-view">
+      <h3>⭐ ${monthCodeToName(month)}　共 ${doctors.length} 位醫師</h3>
+      <div class="doctor-grid" style="padding:0;">
+        ${doctors.map(d => renderDoctorTag(d)).join('')}
+      </div>
+    </div>
+  `;
+
+  // Show full schedule context for these doctors
+  content.innerHTML = `
+    <div style="font-size:0.82rem;color:var(--muted);margin-bottom:0.75rem;">以下醫師完整輪轉資訊：</div>
+    <div style="overflow-x:auto;">
+      <table class="schedule-table">
+        <thead>
+          <tr>
+            <th>姓名</th>
+            <th>學程</th>
+            ${allMonths.map(m => `<th style="font-size:0.75rem;white-space:nowrap;">${monthCodeToShort(m)}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${doctors.map(d => {
+            return `
+              <tr>
+                <td style="font-weight:600;">${d.name}</td>
+                <td style="font-size:0.78rem;color:var(--muted);">${d.program}</td>
+                ${allMonths.map(m => {
+                  const isHere = (scheduleData[m] || []).some(x => x.name === d.name);
+                  const isSelected = m === month;
+                  return `<td style="${isSelected ? 'background:#FFF8EE;font-weight:700;color:var(--gold);' : ''} ${isHere && !isSelected ? 'background:var(--accent);color:var(--primary);' : ''} font-size:0.78rem;">${isHere ? '老醫' : ''}</td>`;
+                }).join('')}
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderDoctorTag(d) {
+  const track = getTrack(d.program);
+  return `
+    <div class="doctor-tag">
+      <span>${d.name}</span>
+      ${track ? `<span class="track-badge track-${track}" style="font-size:0.7rem;padding:1px 5px;">${getTrackFull(track)}</span>` : ''}
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
