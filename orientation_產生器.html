@@ -24281,10 +24281,12 @@ async function odUpload() {
     if (!window.msal) {
       await new Promise((res, rej) => {
         const s = document.createElement('script');
-        s.src = 'https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js';
-        s.onload = res; s.onerror = rej;
+        s.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.4/lib/msal-browser.min.js';
+        s.onload = res;
+        s.onerror = () => rej(new Error('無法載入登入模組（網路被擋）'));
         document.head.appendChild(s);
       });
+      if (!window.msal) throw new Error('登入模組載入異常，請重試');
     }
     if (!_OD.instance) {
       _OD.instance = new msal.PublicClientApplication({
