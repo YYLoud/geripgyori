@@ -23285,6 +23285,9 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       下載 Word 檔案
     </button>
+    <button class="dl-btn" id="od-upload-btn" onclick="ODHelper.upload()" style="display:none;background:#0078D4;border:none;margin-left:6px;">
+      ☁ <span class="od-label">上傳到 OneDrive</span>
+    </button>
   </div>
 
   <!-- Sidebar -->
@@ -24093,12 +24096,14 @@ function generateDocx() {
   D.Packer.toBlob(ddoc).then(function(blob){
     var url = URL.createObjectURL(blob);
     var a   = document.createElement('a');
-    a.href=url; a.download=rocYear+'年'+month+'月_老年醫學科教學活動表.docx';
+    var fname=rocYear+'年'+month+'月_老年醫學科教學活動表.docx';
+    a.href=url; a.download=fname;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showToast('✓ 已下載');
+    if (window.ODHelper) ODHelper.setBlob(blob, fname);
   }).catch(function(e){ console.error(e); showToast('產生失敗：'+e.message); })
   .finally(function(){
     btn.disabled=false;
@@ -24176,5 +24181,7 @@ renderPalette();
 seedIfNeeded();
 render();
 </script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="onedrive.js"></script>
 </body>
 </html>

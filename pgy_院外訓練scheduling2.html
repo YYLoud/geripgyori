@@ -111,6 +111,9 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       匯出 Word 檔案（.docx）
     </button>
+    <button class="export-btn" id="od-upload-btn" onclick="ODHelper.upload()" style="display:none;background:#0078D4;border-color:#0078D4;margin-top:6px;">
+      ☁ <span class="od-label">上傳到 OneDrive</span>
+    </button>
   </div>
 </div>
 
@@ -2067,15 +2070,19 @@ async function exportDocx(){
   zip.file('word/document.xml', docXml);
 
   const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const filename=`${month}月_PGY老年醫學科院外訓練_orientation.docx`;
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`${month}月_PGY老年醫學科院外訓練_orientation.docx`;
+  a.download=filename;
   a.click();
   URL.revokeObjectURL(url);
+  if (window.ODHelper) ODHelper.setBlob(blob, filename);
 }
 
 addDoctor('','');addDoctor('','');addDoctor('','');
 </script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="onedrive.js"></script>
 </body>
 </html>
