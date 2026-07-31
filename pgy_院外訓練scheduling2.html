@@ -96,50 +96,40 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
       <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
         <label style="font-size:12px;color:#444;font-weight:500;">星期一 院外名額</label>
         <select id="outQuota_0" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
-          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="1" selected>1 人</option>
           <option value="2">2 人</option>
-          <option value="3">3 人</option>
-          <option value="4">4 人</option>
           <option value="0">0 人 (暫停院外)</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
         <label style="font-size:12px;color:#444;font-weight:500;">星期二 院外名額</label>
         <select id="outQuota_1" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
-          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="1" selected>1 人</option>
           <option value="2">2 人</option>
-          <option value="3">3 人</option>
-          <option value="4">4 人</option>
           <option value="0">0 人 (暫停院外)</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
         <label style="font-size:12px;color:#444;font-weight:500;">星期三 院外名額</label>
         <select id="outQuota_2" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
-          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="1" selected>1 人</option>
           <option value="2">2 人</option>
-          <option value="3">3 人</option>
-          <option value="4">4 人</option>
           <option value="0">0 人 (暫停院外)</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
         <label style="font-size:12px;color:#444;font-weight:500;">星期四 院外名額</label>
         <select id="outQuota_3" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
-          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="1" selected>1 人</option>
           <option value="2">2 人</option>
-          <option value="3">3 人</option>
-          <option value="4">4 人</option>
           <option value="0">0 人 (暫停院外)</option>
         </select>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
         <label style="font-size:12px;color:#444;font-weight:500;">星期五 院外名額</label>
         <select id="outQuota_4" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
-          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="1" selected>1 人</option>
           <option value="2">2 人</option>
-          <option value="3">3 人</option>
-          <option value="4">4 人</option>
           <option value="0">0 人 (暫停院外)</option>
         </select>
     </div>
@@ -221,6 +211,7 @@ function addDoctor(name='',phone=''){
     <button class="remove-btn" onclick="removeDoctor(${id})">移除</button>
   `;
   document.getElementById('doctorList').appendChild(div);
+  updateQuotaOptions();
 }
 
 function toggleCb(docId,dayIdx){
@@ -240,6 +231,7 @@ function toggleSun(docId){
 function removeDoctor(id){
   const el=document.getElementById('dr_'+id);
   if(el)el.remove();
+  updateQuotaOptions();
 }
 
 function getDoctors(){
@@ -247,9 +239,12 @@ function getDoctors(){
   const result=[];
   rows.forEach(row=>{
     const id=row.id.replace('dr_','');
-    const name=document.getElementById('name_'+id).value.trim();
+    const nameInput=document.getElementById('name_'+id);
+    if(!nameInput)return;
+    const name=nameInput.value.trim();
     if(!name)return;
-    const phone=document.getElementById('phone_'+id).value.trim();
+    const phoneInput=document.getElementById('phone_'+id);
+    const phone=phoneInput ? phoneInput.value.trim() : '';
     const duty=[];
     for(let i=0;i<5;i++){
       const chk=document.getElementById('chk_'+id+'_'+i);
@@ -273,12 +268,66 @@ document.getElementById('weekStart').addEventListener('change',function(){
   document.getElementById('datePreview').textContent='本週日期：'+dates.join('　');
 });
 
+function getDoctorCount() {
+  const rows = document.querySelectorAll('.doctor-row');
+  let count = 0;
+  rows.forEach(row => {
+    const id = row.id.replace('dr_', '');
+    const name = document.getElementById('name_' + id)?.value?.trim();
+    if (name) count++;
+  });
+  if (count === 0 && rows.length > 0) count = rows.length;
+  if (count === 0) count = 3;
+  return count;
+}
+
+function updateQuotaOptions() {
+  const N = getDoctorCount();
+  const maxOut = Math.max(1, N - 1);
+
+  for (let d = 0; d < 5; d++) {
+    const select = document.getElementById('outQuota_' + d);
+    if (!select) continue;
+    const currentVal = parseInt(select.value);
+
+    let optionsHtml = '';
+    for (let i = 1; i <= maxOut; i++) {
+      optionsHtml += `<option value="${i}">${i} 人</option>`;
+    }
+    optionsHtml += `<option value="0">0 人 (暫停院外)</option>`;
+
+    select.innerHTML = optionsHtml;
+
+    if (!isNaN(currentVal) && currentVal <= maxOut && currentVal >= 0) {
+      select.value = String(currentVal);
+    } else {
+      select.value = '1';
+    }
+  }
+}
+
 function setAllQuotas(n) {
   for (let d = 0; d < 5; d++) {
     const el = document.getElementById('outQuota_' + d);
-    if (el) el.value = String(n);
+    if (el) {
+      const opt = el.querySelector(`option[value="${n}"]`);
+      if (opt) {
+        el.value = String(n);
+      } else if (n === 1) {
+        el.value = '1';
+      }
+    }
   }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  const list = document.getElementById('doctorList');
+  if (list) {
+    list.addEventListener('input', updateQuotaOptions);
+    list.addEventListener('change', updateQuotaOptions);
+  }
+  updateQuotaOptions();
+});
 
 function generate(){
   const weekStart=document.getElementById('weekStart').value;
