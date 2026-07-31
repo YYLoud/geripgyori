@@ -555,6 +555,38 @@ function getTrackFull(track) {
   return map[track] || track;
 }
 
+function extractCleanDoctorName(str) {
+  if (!str) return '';
+  let s = String(str).trim();
+
+  // Strip prefixes like PGY1-, PGY2-, 延-, 延訓-, 不-, 外-, 內-, 婦-, 兒-
+  s = s.replace(/^(PGY[12]?|延訓?|[不內外婦兒延])[-_]?/gi, '');
+  s = s.replace(/^(PGY[12]?|延訓?|[不內外婦兒延])[-_]?/gi, '');
+
+  // Strip suffixes like -11511結訓, -11412, -結訓, -離職, (結訓), (11511), etc.
+  s = s.replace(/([-_]?\d{4,5}.*|[-_]?(結訓|離職|延訓|補訓).*|\(.*\))$/g, '');
+
+  return s.trim();
+}
+
+function findContactInfo(rawName, contactMap) {
+  if (!rawName) return { code: '', phone: '', empId: '', email: '' };
+
+  if (contactMap[rawName]) return contactMap[rawName];
+
+  const cleanName = extractCleanDoctorName(rawName);
+  if (contactMap[cleanName]) return contactMap[cleanName];
+
+  const keys = Object.keys(contactMap);
+  for (let k of keys) {
+    if (k.length >= 2 && (rawName.includes(k) || (cleanName && cleanName.includes(k)))) {
+      return contactMap[k];
+    }
+  }
+
+  return { code: '', phone: '', empId: '', email: '' };
+}
+
 // Parse Excel
 function parseExcel(buffer) {
   const wb = XLSX.read(buffer, { type: 'array' });
@@ -587,7 +619,7 @@ function parseExcel(buffer) {
           const dRow = rawContact[j];
           if (!dRow || !dRow[nameCol]) continue;
           let rawName = String(dRow[nameCol]).trim();
-          let cleanName = rawName.replace(/^(PGY[12][-_]?)/i, '').trim();
+          let cleanName = extractCleanDoctorName(rawName);
           if (!cleanName || cleanName.includes('姓名') || cleanName.includes('聯絡')) continue;
 
           let code = codeCol !== -1 && dRow[codeCol] != null ? String(dRow[codeCol]).trim() : '';
@@ -658,18 +690,18 @@ function parseExcel(buffer) {
     if (!row || !row[nameCol]) continue;
 
     let rawName = String(row[nameCol]).trim();
-    let cleanName = rawName.replace(/^(PGY[12][-_]?)/i, '').trim();
+    let cleanName = extractCleanDoctorName(rawName);
     const program = row[programCol] ? String(row[programCol]).trim() : '';
 
     if (!cleanName || cleanName.includes('學年度') || cleanName === '學員姓名' || cleanName === '月份/科別') continue;
 
-    const contact = contactMap[cleanName] || contactMap[rawName] || { code: '', phone: '', empId: '', email: '' };
+    const contact = findContactInfo(rawName, contactMap);
 
     Object.entries(monthCols).forEach(([col, monthCode]) => {
       const dept = row[parseInt(col)];
       if (dept && String(dept).includes('老醫')) {
         result[monthCode].push({
-          name: cleanName,
+          name: cleanName || rawName,
           rawName: rawName,
           program: program,
           code: contact.code,
