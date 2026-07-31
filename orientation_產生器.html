@@ -23682,7 +23682,7 @@ const doc = new Document({
               cellP("● 急性照護病房", { bold: true }),
               cellP("　照顧 Primary care 及 Combined care 病人"),
               cellP("● 老年醫學科門診", { bold: true }),
-              cellP("　教學門診（至少2-3次）"),
+              cellP("　教學門診（至少4-6次）"),
             ], { w: PW / 2 }),
             makeCell(HAS_OUTREACH ? [
               cellP("● 養護機構參訪", { bold: true }),
@@ -23737,7 +23737,7 @@ const doc = new Document({
 
           checkRow("會議記錄", [cellP([run("老年醫學科晨會", { bold: true }), run("　完整記錄並繳交")])], 1, true, C.lightGray),
           checkRow("學習紀錄",
-            [cellP([run("教學住診記錄單", { bold: true }), run("　至少 2 份")])], 3, true, null),
+            [cellP([run("教學住診記錄單", { bold: true }), run("　至少 4 份")])], 3, true, null),
           new TableRow({ cantSplit: true, children: [
             new TableCell({
               children: [cellP("☐", { bold: true, size: 22, color: C.gold })],
@@ -23745,7 +23745,7 @@ const doc = new Document({
               width: { size: 280, type: WidthType.DXA },
               margins: { top: 80, bottom: 80, left: 140, right: 140 },
             }),
-            makeCell([cellP([run("教學門診記錄單", { bold: true }), run("　2–3 份")])], { w: PW - 1400 - 280 }),
+            makeCell([cellP([run("教學門診記錄單", { bold: true }), run("　4–6 份")])], { w: PW - 1400 - 280 }),
           ]}),
           new TableRow({ cantSplit: true, children: [
             new TableCell({
