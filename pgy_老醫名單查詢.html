@@ -264,36 +264,93 @@ body {
 
 .doctor-grid {
   padding: 1rem 1.25rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
 }
 
-.doctor-tag {
+.doctor-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 1px 4px rgba(27,94,138,0.04);
+  transition: all 0.15s;
+}
+
+.doctor-card:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 3px 10px rgba(27,94,138,0.1);
+  transform: translateY(-1px);
+}
+
+.doctor-card-top {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--accent);
-  border: 1px solid #B8D9F0;
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 0.88rem;
-  color: var(--primary);
-  font-weight: 500;
+  flex-wrap: wrap;
 }
 
-.doctor-tag .program-id {
+.doctor-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.program-id {
   font-size: 0.72rem;
   color: var(--muted);
   background: #F0F0F5;
   border-radius: 4px;
   padding: 1px 5px;
   font-weight: 400;
+  margin-left: auto;
 }
 
-.doctor-tag .track {
-  font-size: 0.72rem;
+.doctor-contact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.contact-pill {
+  font-size: 0.76rem;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.code-pill {
+  background: var(--gold-bg);
+  color: var(--gold);
+  border: 1px solid #E8C97B;
+}
+
+.phone-pill {
+  background: var(--accent);
+  color: var(--primary);
+  border: 1px solid #B8D9F0;
+  transition: all 0.15s;
+}
+
+.phone-pill:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.empty-pill {
+  background: var(--bg);
   color: var(--muted);
+  border: 1px solid var(--border);
 }
 
 /* Table view */
@@ -502,21 +559,70 @@ function getTrackFull(track) {
 function parseExcel(buffer) {
   const wb = XLSX.read(buffer, { type: 'array' });
 
-  // Try to find the schedule sheet
-  const sheetName = wb.SheetNames.find(n => n.includes('班表') || n.includes('全'));
-  if (!sheetName) {
+  // 1. Try to find contact info sheet
+  let contactMap = {}; // cleanName/rawName -> { code, phone, empId, email }
+  const contactSheetName = wb.SheetNames.find(n => n.includes('聯絡') || n.includes('資訊') || n.includes('通訊'));
+
+  if (contactSheetName) {
+    const wsContact = wb.Sheets[contactSheetName];
+    const rawContact = XLSX.utils.sheet_to_json(wsContact, { header: 1, defval: null });
+
+    let nameCol = -1, codeCol = -1, phoneCol = -1, empIdCol = -1, emailCol = -1;
+
+    for (let i = 0; i < Math.min(rawContact.length, 15); i++) {
+      const row = rawContact[i];
+      if (!row) continue;
+      row.forEach((val, colIdx) => {
+        if (!val) return;
+        const str = String(val).trim().toUpperCase();
+        if (str.includes('姓名')) nameCol = colIdx;
+        else if (str.includes('簡碼')) codeCol = colIdx;
+        else if (str.includes('手機') || str.includes('電話')) phoneCol = colIdx;
+        else if (str.includes('員工代號') || str.includes('工號') || str.includes('員編')) empIdCol = colIdx;
+        else if (str.includes('E-MAIL') || str.includes('EMAIL') || str.includes('信箱')) emailCol = colIdx;
+      });
+
+      if (nameCol !== -1 && (codeCol !== -1 || phoneCol !== -1)) {
+        for (let j = i + 1; j < rawContact.length; j++) {
+          const dRow = rawContact[j];
+          if (!dRow || !dRow[nameCol]) continue;
+          let rawName = String(dRow[nameCol]).trim();
+          let cleanName = rawName.replace(/^(PGY[12][-_]?)/i, '').trim();
+          if (!cleanName || cleanName.includes('姓名') || cleanName.includes('聯絡')) continue;
+
+          let code = codeCol !== -1 && dRow[codeCol] != null ? String(dRow[codeCol]).trim() : '';
+          let phone = phoneCol !== -1 && dRow[phoneCol] != null ? String(dRow[phoneCol]).trim() : '';
+          let empId = empIdCol !== -1 && dRow[empIdCol] != null ? String(dRow[empIdCol]).trim() : '';
+          let email = emailCol !== -1 && dRow[emailCol] != null ? String(dRow[emailCol]).trim() : '';
+
+          if (phone.length === 9 && !phone.startsWith('0')) {
+            phone = '0' + phone;
+          }
+
+          const info = { code, phone, empId, email };
+          contactMap[cleanName] = info;
+          if (rawName !== cleanName) contactMap[rawName] = info;
+        }
+        break;
+      }
+    }
+  }
+
+  // 2. Find schedule sheet
+  const scheduleSheetName = wb.SheetNames.find(n => n.includes('班表') || n.includes('全'));
+  if (!scheduleSheetName) {
     throw new Error('找不到班表工作表（需含「班表」或「全」的工作表名稱）');
   }
 
-  const ws = wb.Sheets[sheetName];
+  const ws = wb.Sheets[scheduleSheetName];
   const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
 
-  // Find header rows (rows with month codes like 11408, 11409...)
   let headerRowIdx = -1;
   let monthCols = {};
 
   for (let i = 0; i < Math.min(raw.length, 10); i++) {
     const row = raw[i];
+    if (!row) continue;
     const monthFound = row.filter(v => {
       if (typeof v === 'number') {
         const s = String(Math.floor(v));
@@ -540,35 +646,42 @@ function parseExcel(buffer) {
     throw new Error('找不到月份欄位，請確認是正確的學程表格式');
   }
 
-  // Find name column (col 1 usually) and program col (col 0)
   const nameCol = 1;
   const programCol = 0;
 
   const result = {};
   const monthList = Object.values(monthCols).sort((a, b) => a - b);
-
   monthList.forEach(m => result[m] = []);
 
-  // Parse data rows
   for (let i = headerRowIdx + 1; i < raw.length; i++) {
     const row = raw[i];
     if (!row || !row[nameCol]) continue;
 
-    const name = String(row[nameCol]).trim();
+    let rawName = String(row[nameCol]).trim();
+    let cleanName = rawName.replace(/^(PGY[12][-_]?)/i, '').trim();
     const program = row[programCol] ? String(row[programCol]).trim() : '';
 
-    // Skip if not a real doctor row
-    if (!name || name.includes('學年度') || name === '學員姓名' || name === '月份/科別') continue;
+    if (!cleanName || cleanName.includes('學年度') || cleanName === '學員姓名' || cleanName === '月份/科別') continue;
+
+    const contact = contactMap[cleanName] || contactMap[rawName] || { code: '', phone: '', empId: '', email: '' };
 
     Object.entries(monthCols).forEach(([col, monthCode]) => {
       const dept = row[parseInt(col)];
       if (dept && String(dept).includes('老醫')) {
-        result[monthCode].push({ name, program });
+        result[monthCode].push({
+          name: cleanName,
+          rawName: rawName,
+          program: program,
+          code: contact.code,
+          phone: contact.phone,
+          empId: contact.empId,
+          email: contact.email
+        });
       }
     });
   }
 
-  return { result, monthList };
+  return { result, monthList, hasContactInfo: Object.keys(contactMap).length > 0 };
 }
 
 // File input
@@ -596,13 +709,13 @@ function handleFile(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const { result, monthList } = parseExcel(new Uint8Array(e.target.result));
+      const { result, monthList, hasContactInfo } = parseExcel(new Uint8Array(e.target.result));
       scheduleData = result;
       allMonths = monthList;
 
       zone.classList.add('has-file');
       document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
-      document.getElementById('uploadDesc').textContent = `已載入 ${monthList.length} 個月份的排班資料`;
+      document.getElementById('uploadDesc').textContent = `已載入 ${monthList.length} 個月份排班資料` + (hasContactInfo ? '（含醫師簡碼與手機通訊錄）' : '');
 
       buildMonthButtons();
       renderAll();
@@ -633,7 +746,6 @@ function buildMonthButtons() {
 function filterMonth(month) {
   currentFilter = month;
 
-  // Update button states
   document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
   const activeBtn = document.getElementById('btn-' + month);
   if (activeBtn) activeBtn.classList.add('active');
@@ -704,6 +816,8 @@ function renderAllMonths() {
             <tr>
               <th>月份</th>
               <th>姓名</th>
+              <th>簡碼</th>
+              <th>手機</th>
               <th>學程</th>
               <th>組別</th>
             </tr>
@@ -716,7 +830,9 @@ function renderAllMonths() {
                 return `
                   <tr>
                     ${i === 0 ? `<td rowspan="${doctors.length}" style="font-weight:600;color:var(--primary);white-space:nowrap;">${monthCodeToShort(m)}</td>` : ''}
-                    <td>${d.name}</td>
+                    <td style="font-weight:600;">${d.name}</td>
+                    <td>${d.code ? `<span class="contact-pill code-pill">📞 ${d.code}</span>` : '<span style="color:var(--muted);">-</span>'}</td>
+                    <td>${d.phone ? `<a href="tel:${d.phone}" class="contact-pill phone-pill">📱 ${d.phone}</a>` : '<span style="color:var(--muted);">-</span>'}</td>
                     <td style="font-size:0.8rem;color:var(--muted);">${d.program}</td>
                     <td><span class="track-badge track-${track}">${getTrackFull(track)}</span></td>
                   </tr>
@@ -764,6 +880,8 @@ function renderSingleMonth(month) {
         <thead>
           <tr>
             <th>姓名</th>
+            <th>簡碼</th>
+            <th>手機</th>
             <th>學程</th>
             ${allMonths.map(m => `<th style="font-size:0.75rem;white-space:nowrap;">${monthCodeToShort(m)}</th>`).join('')}
           </tr>
@@ -772,8 +890,10 @@ function renderSingleMonth(month) {
           ${doctors.map(d => {
             return `
               <tr>
-                <td style="font-weight:600;">${d.name}</td>
-                <td style="font-size:0.78rem;color:var(--muted);">${d.program}</td>
+                <td style="font-weight:600;white-space:nowrap;">${d.name}</td>
+                <td style="white-space:nowrap;">${d.code ? `<span class="contact-pill code-pill">📞 ${d.code}</span>` : '-'}</td>
+                <td style="white-space:nowrap;">${d.phone ? `<a href="tel:${d.phone}" class="contact-pill phone-pill">📱 ${d.phone}</a>` : '-'}</td>
+                <td style="font-size:0.78rem;color:var(--muted);white-space:nowrap;">${d.program}</td>
                 ${allMonths.map(m => {
                   const isHere = (scheduleData[m] || []).some(x => x.name === d.name);
                   const isSelected = m === month;
@@ -791,9 +911,16 @@ function renderSingleMonth(month) {
 function renderDoctorTag(d) {
   const track = getTrack(d.program);
   return `
-    <div class="doctor-tag">
-      <span>${d.name}</span>
-      ${track ? `<span class="track-badge track-${track}" style="font-size:0.7rem;padding:1px 5px;">${getTrackFull(track)}</span>` : ''}
+    <div class="doctor-card">
+      <div class="doctor-card-top">
+        <span class="doctor-name">${d.name}</span>
+        ${track ? `<span class="track-badge track-${track}" style="font-size:0.7rem;padding:1px 5px;">${getTrackFull(track)}</span>` : ''}
+        <span class="program-id">${d.program}</span>
+      </div>
+      <div class="doctor-contact">
+        ${d.code ? `<span class="contact-pill code-pill" title="簡碼">📞 簡碼 <strong>${d.code}</strong></span>` : '<span class="contact-pill empty-pill">📞 簡碼 --</span>'}
+        ${d.phone ? `<a href="tel:${d.phone}" class="contact-pill phone-pill" title="點擊撥打手機">📱 手機 <strong>${d.phone}</strong></a>` : '<span class="contact-pill empty-pill">📱 手機 --</span>'}
+      </div>
     </div>
   `;
 }
