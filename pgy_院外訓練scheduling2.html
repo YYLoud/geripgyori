@@ -84,6 +84,69 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
 
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div class="card-title" style="margin-bottom:0;">每日院外訓練名額設定</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="setAllQuotas(1)" class="add-btn" style="padding:3px 8px;font-size:11px;">全選 1 人</button>
+        <button onclick="setAllQuotas(2)" class="add-btn" style="padding:3px 8px;font-size:11px;">全選 2 人</button>
+        <button onclick="setAllQuotas(3)" class="add-btn" style="padding:3px 8px;font-size:11px;">全選 3 人</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#666;margin-bottom:12px;">系統會確保<strong>院內至少維持 1 人全天留守</strong>。例如 3 位 PGY：選「2 人」院外時，院內將自動留守 1 人；選「1 人」時留守 2 人。</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:12px;color:#444;font-weight:500;">星期一 院外名額</label>
+        <select id="outQuota_0" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
+          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="2">2 人</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+          <option value="0">0 人 (暫停院外)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:12px;color:#444;font-weight:500;">星期二 院外名額</label>
+        <select id="outQuota_1" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
+          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="2">2 人</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+          <option value="0">0 人 (暫停院外)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:12px;color:#444;font-weight:500;">星期三 院外名額</label>
+        <select id="outQuota_2" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
+          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="2">2 人</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+          <option value="0">0 人 (暫停院外)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:12px;color:#444;font-weight:500;">星期四 院外名額</label>
+        <select id="outQuota_3" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
+          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="2">2 人</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+          <option value="0">0 人 (暫停院外)</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+        <label style="font-size:12px;color:#444;font-weight:500;">星期五 院外名額</label>
+        <select id="outQuota_4" style="padding:6px 8px;border-radius:6px;border:0.5px solid #ccc;font-size:13px;background:#fff;outline:none;">
+          <option value="1" selected>1 人 (院內全留)</option>
+          <option value="2">2 人</option>
+          <option value="3">3 人</option>
+          <option value="4">4 人</option>
+          <option value="0">0 人 (暫停院外)</option>
+        </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin-bottom:0;">PGY 醫師名單與夜間值班</div>
       <button class="add-btn" onclick="openPasteModal()" style="background:#E8F4FD;color:#1B5E8A;border-color:#B8D9F0;font-weight:500;">
         📋 批量貼上醫師名單與電話
@@ -210,11 +273,24 @@ document.getElementById('weekStart').addEventListener('change',function(){
   document.getElementById('datePreview').textContent='本週日期：'+dates.join('　');
 });
 
+function setAllQuotas(n) {
+  for (let d = 0; d < 5; d++) {
+    const el = document.getElementById('outQuota_' + d);
+    if (el) el.value = String(n);
+  }
+}
+
 function generate(){
   const weekStart=document.getElementById('weekStart').value;
   if(!weekStart){alert('請選擇訓練週起日');return;}
   const docs=getDoctors();
   if(docs.length<1){alert('請至少新增一位醫師');return;}
+
+  const requestedQuotas = [];
+  for (let d = 0; d < 5; d++) {
+    const el = document.getElementById('outQuota_' + d);
+    requestedQuotas.push(el ? parseInt(el.value) : 1);
+  }
 
   const warnings=[];
   const outCount={};
@@ -245,31 +321,40 @@ function generate(){
     const postDuty=afterDutyOff[day]||[];
     const pmOffNames=[...postDuty];
     const eligible=docs.filter(d=>!postDuty.includes(d.name));
+
+    const reqOutCount = requestedQuotas[day];
+    const maxOutAllowed = Math.max(0, eligible.length - 1);
+    const actualOutTarget = Math.min(reqOutCount, maxOutAllowed);
+
+    if (reqOutCount > maxOutAllowed && reqOutCount > 0) {
+      if (eligible.length <= 1) {
+        warnings.push(`${DAYS[day]}：合規可排全天人力僅 ${eligible.length} 人，為維持院內至少 1 人全天留守，院外訓練暫停。`);
+      } else {
+        warnings.push(`${DAYS[day]}：預設院外 ${reqOutCount} 人，但為維持院內至少 1 人全天留守，今日調整為院外 ${actualOutTarget} 人（院內全天留守 ${eligible.length - actualOutTarget} 人）。`);
+      }
+    } else if (reqOutCount === 0) {
+      warnings.push(`${DAYS[day]}：已手動設定當日暫停院外訓練。`);
+    }
+
     const dutyTonightElig=eligible.filter(d=>dutyToday.includes(d.name));
     const nonDutyElig=eligible.filter(d=>!dutyToday.includes(d.name));
+
     nonDutyElig.sort((a,b)=>outCount[a.name]-outCount[b.name]);
+    dutyTonightElig.sort((a,b)=>outCount[a.name]-outCount[b.name]);
 
     let outDoc=[];
     let inDoc=[...postDuty];
-    dutyTonightElig.forEach(d=>inDoc.push(d.name));
 
-    if(nonDutyElig.length>0&&eligible.length>=2){
-      const pick=nonDutyElig[0];
-      outDoc.push(pick.name);
-      outCount[pick.name]++;
-      nonDutyElig.slice(1).forEach(d=>inDoc.push(d.name));
-    } else if(nonDutyElig.length>0&&eligible.length===1){
-      warnings.push(`${DAYS[day]}：院內人力僅剩1人，院外訓練暫停。`);
-      nonDutyElig.forEach(d=>inDoc.push(d.name));
-    } else if(nonDutyElig.length===0&&dutyTonightElig.length>=2){
-      dutyTonightElig.sort((a,b)=>outCount[a.name]-outCount[b.name]);
-      outDoc.push(dutyTonightElig[0].name);
-      outCount[dutyTonightElig[0].name]++;
-      const idx=inDoc.indexOf(dutyTonightElig[0].name);
-      if(idx>-1)inDoc.splice(idx,1);
-    } else {
-      if(dutyTonightElig.length===1)warnings.push(`${DAYS[day]}：院內人力不足，院外訓練暫停。`);
-      else if(eligible.length===0)warnings.push(`${DAYS[day]}：所有醫師皆為隔日rest，院外訓練暫停。`);
+    const candidatePool = [...nonDutyElig, ...dutyTonightElig];
+
+    for (let i = 0; i < candidatePool.length; i++) {
+      const cand = candidatePool[i];
+      if (outDoc.length < actualOutTarget) {
+        outDoc.push(cand.name);
+        outCount[cand.name]++;
+      } else {
+        inDoc.push(cand.name);
+      }
     }
 
     const inDocUniq=[...new Set(inDoc)];
