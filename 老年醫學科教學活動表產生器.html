@@ -23427,7 +23427,7 @@ var PALETTE = [
   { id:'teach',   icon:'🏥', label:'教學住診',       subLabel:'任一查房時',      defaultTime:'',      defaultNote:'' },
   { id:'meeting', icon:'👥', label:'跨團隊會議',     subLabel:'12:10 / 13:10', defaultTime:'12:10', defaultNote:'' },
   { id:'neu',     icon:'🧠', label:'神放跨科討論會', subLabel:'15:30',           defaultTime:'15:30', defaultNote:'' },
-  { id:'clinic',  icon:'🩺', label:'門診教學 78診',   subLabel:'08:30 / 78診',    defaultTime:'08:30', defaultNote:'最多2位，請自行分配' },
+  { id:'clinic',  icon:'🩺', label:'門診教學 78診',   subLabel:'08:30 / 78診',    defaultTime:'08:30', defaultNote:'' },
   { id:'clinic87',icon:'🩺', label:'門診教學 87診',   subLabel:'02:00 / 87診',    defaultTime:'02:00', defaultNote:'' },
   { id:'journal', icon:'📖', label:'Journal Reading',     subLabel:'橘色・可調整',  defaultTime:'',      defaultNote:'' },
   { id:'feedback',icon:'📋', label:'院外訓練回饋會議', subLabel:'橘色・可調整',  defaultTime:'',      defaultNote:'' },
@@ -24163,7 +24163,7 @@ function seedDefaultEvents() {
   [1, 2].forEach(function(n) {
     var thu = nthInMonthDay(3, n);
     if (thu) {
-      orangeEvents.push({ id: nextId++, dateKey: dateKey(thu), paletteId: 'clinic', name: '門診教學 78診', time: '08:30', note: '最多2位，請自行分配' });
+      orangeEvents.push({ id: nextId++, dateKey: dateKey(thu), paletteId: 'clinic', name: '門診教學 78診', time: '08:30', note: '' });
     }
   });
 }
