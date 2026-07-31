@@ -800,7 +800,10 @@ function renderAllMonths() {
         <div class="month-card">
           <div class="month-header">
             <h3>${monthCodeToName(m)}</h3>
-            <span class="doctor-count">${doctors.length} 位醫師</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="doctor-count">${doctors.length} 位醫師</span>
+              <button onclick="copyDoctorListToScheduling('${m}')" style="background:var(--gold);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;font-family:inherit;font-weight:600;">📋 複製帶入院外排班</button>
+            </div>
           </div>
           <div class="doctor-grid">
             ${doctors.map(d => renderDoctorTag(d)).join('')}
@@ -865,7 +868,10 @@ function renderSingleMonth(month) {
   monthView.style.display = 'block';
   monthView.innerHTML = `
     <div class="selected-month-view">
-      <h3>⭐ ${monthCodeToName(month)}　共 ${doctors.length} 位醫師</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:8px;">
+        <h3 style="margin:0;">⭐ ${monthCodeToName(month)}　共 ${doctors.length} 位醫師</h3>
+        <button onclick="copyDoctorListToScheduling('${month}')" style="background:var(--gold);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:0.8rem;cursor:pointer;font-family:inherit;font-weight:600;box-shadow:0 2px 5px rgba(0,0,0,0.1);">📋 複製名單帶入院外訓練排班</button>
+      </div>
       <div class="doctor-grid" style="padding:0;">
         ${doctors.map(d => renderDoctorTag(d)).join('')}
       </div>
@@ -923,6 +929,61 @@ function renderDoctorTag(d) {
       </div>
     </div>
   `;
+}
+
+function copyDoctorListToScheduling(month) {
+  const doctors = scheduleData[month] || [];
+  if (doctors.length === 0) {
+    alert('該月份目前無醫師資料可複製');
+    return;
+  }
+
+  const monthName = monthCodeToName(month);
+  const transferData = {
+    monthName: monthName,
+    monthCode: month,
+    doctors: doctors.map(d => ({
+      name: d.name,
+      phone: d.phone || d.code || '',
+      code: d.code || '',
+      program: d.program || ''
+    }))
+  };
+
+  try {
+    localStorage.setItem('geripgy_transfer_doctors', JSON.stringify(transferData));
+  } catch(e) {}
+
+  const lines = doctors.map(d => {
+    const contact = d.phone || d.code || '';
+    return `${d.name}\t${contact}`;
+  }).join('\n');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lines).then(() => {
+      showCopyToast(monthName, doctors.length);
+    }).catch(() => {
+      showCopyToast(monthName, doctors.length);
+    });
+  } else {
+    showCopyToast(monthName, doctors.length);
+  }
+}
+
+function showCopyToast(monthName, count) {
+  let toast = document.getElementById('copyToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'copyToast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0D1B2A;color:#fff;padding:12px 20px;border-radius:10px;font-size:0.85rem;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.25);display:flex;align-items:center;gap:12px;border:1px solid #2E86AB;';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `
+    <div>✓ 已複製 <strong>${monthName}</strong> 共 ${count} 位醫師名單與電話！</div>
+    <a href="pgy_院外訓練scheduling2.html" target="_blank" style="background:#C17F24;color:#fff;padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;white-space:nowrap;">🚀 前往院外訓練排班 (自動帶入)</a>
+  `;
+  toast.style.display = 'flex';
+  setTimeout(() => { if (toast) toast.style.display = 'none'; }, 8000);
 }
 </script>
 </body>

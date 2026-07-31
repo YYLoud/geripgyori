@@ -83,11 +83,26 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
   </div>
 
   <div class="card">
-    <div class="card-title">PGY 醫師名單與夜間值班</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+      <div class="card-title" style="margin-bottom:0;">PGY 醫師名單與夜間值班</div>
+      <button class="add-btn" onclick="openPasteModal()" style="background:#E8F4FD;color:#1B5E8A;border-color:#B8D9F0;font-weight:500;">
+        📋 批量貼上醫師名單與電話
+      </button>
+    </div>
+
+    <!-- Auto-import banner -->
+    <div id="importBanner" style="display:none;background:#FFF8EE;border:1px solid #E8C97B;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.83rem;color:#92400E;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div id="importBannerText"></div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button onclick="applyImportedDoctors()" style="background:#C17F24;color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:0.78rem;font-weight:600;cursor:pointer;">⚡ 一鍵自動帶入名單</button>
+        <button onclick="dismissImportBanner()" style="background:none;border:none;color:#92400E;cursor:pointer;font-size:14px;padding:0 4px;">✕</button>
+      </div>
+    </div>
+
     <div id="doctorList"></div>
     <button class="add-btn" onclick="addDoctor()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      新增醫師
+      新增單筆醫師
     </button>
   </div>
 
@@ -2157,6 +2172,116 @@ async function odUpload() {
     btn.disabled = false;
   }
 }
+
+// ── Doctor Import & Paste Management ──────────────────────────────
+let pendingImportDoctors = null;
+
+function checkImportableDoctors() {
+  try {
+    const raw = localStorage.getItem('geripgy_transfer_doctors');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data && data.doctors && data.doctors.length > 0) {
+      pendingImportDoctors = data;
+      const namesStr = data.doctors.slice(0, 3).map(d => d.name).join('、') + (data.doctors.length > 3 ? ` 等 ${data.doctors.length} 位` : '');
+      const banner = document.getElementById('importBanner');
+      const textEl = document.getElementById('importBannerText');
+      if (banner && textEl) {
+        textEl.innerHTML = `💡 檢測到來自「老醫名單查詢」的【<strong>${data.monthName || ''}</strong>】醫師名單（共 ${data.doctors.length} 位：${namesStr}）`;
+        banner.style.display = 'flex';
+      }
+    }
+  } catch(e) {}
+}
+
+function applyImportedDoctors() {
+  if (!pendingImportDoctors || !pendingImportDoctors.doctors) return;
+
+  const rows = document.querySelectorAll('.doctor-row');
+  let hasContent = false;
+  rows.forEach(r => {
+    const id = r.id.replace('dr_', '');
+    const val = document.getElementById('name_' + id)?.value?.trim();
+    if (val) hasContent = true;
+  });
+
+  if (!hasContent) {
+    document.getElementById('doctorList').innerHTML = '';
+  }
+
+  pendingImportDoctors.doctors.forEach(d => {
+    addDoctor(d.name, d.phone || d.code || '');
+  });
+
+  dismissImportBanner();
+  alert(`✓ 已成功帶入 ${pendingImportDoctors.doctors.length} 位醫師資料！`);
+}
+
+function dismissImportBanner() {
+  const banner = document.getElementById('importBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function openPasteModal() {
+  document.getElementById('pasteModalBg').style.display = 'flex';
+}
+
+function closePasteModal() {
+  document.getElementById('pasteModalBg').style.display = 'none';
+}
+
+function submitPastedDoctors() {
+  const text = document.getElementById('pasteInput').value;
+  if (!text.trim()) { alert('請輸入或貼上文字'); return; }
+
+  const lines = text.split('\n');
+  let count = 0;
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const parts = trimmed.split(/[\t,,\s]+/).filter(Boolean);
+    if (parts.length === 0) return;
+
+    let name = parts[0];
+    let phone = '';
+
+    for (let i = 1; i < parts.length; i++) {
+      const p = parts[i];
+      if (/^09\d{8}$/.test(p) || /^\d{9,10}$/.test(p)) {
+        phone = p.length === 9 && !p.startsWith('0') ? '0' + p : p;
+      } else if (!phone && (/^\d{5,6}$/.test(p) || /^8\d{5}$/.test(p))) {
+        phone = p;
+      }
+    }
+    if (name) {
+      addDoctor(name, phone);
+      count++;
+    }
+  });
+
+  closePasteModal();
+  document.getElementById('pasteInput').value = '';
+  alert(`✓ 已成功匯入 ${count} 位醫師！`);
+}
+
+window.addEventListener('DOMContentLoaded', checkImportableDoctors);
+checkImportableDoctors();
 </script>
+
+<!-- Bulk Paste Modal -->
+<div class="modal-bg" id="pasteModalBg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;" onclick="if(event.target===this)closePasteModal()">
+  <div style="background:#fff;border-radius:12px;padding:20px;width:480px;max-width:90vw;box-shadow:0 4px 20px rgba(0,0,0,0.15);">
+    <h3 style="margin-top:0;font-size:1rem;color:#0D1B2A;">📋 批量貼上醫師姓名與電話</h3>
+    <p style="font-size:0.8rem;color:#666;margin:6px 0 12px;">貼上來自「老醫名單查詢」、Excel 或複製的剪貼簿文字（每行一位醫師，例如：<code>張汶楨 0929300168</code>）</p>
+    <textarea id="pasteInput" rows="6" style="width:100%;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:0.85rem;font-family:monospace;outline:none;" placeholder="範例：
+張汶楨 0929300168
+何權 853362 0937069768
+呂宗倫 0937608616"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <button onclick="closePasteModal()" style="padding:6px 14px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:0.82rem;">取消</button>
+      <button onclick="submitPastedDoctors()" style="padding:6px 16px;border-radius:6px;border:none;background:#1B5E8A;color:#fff;cursor:pointer;font-weight:600;font-size:0.82rem;">一鍵匯入名單</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
