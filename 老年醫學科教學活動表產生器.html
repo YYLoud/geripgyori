@@ -23491,9 +23491,9 @@ var PALETTE = [
   { id:'teach',   icon:'🏥', label:'教學住診',       subLabel:'任一查房時',      defaultTime:'',      defaultNote:'' },
   { id:'meeting', icon:'👥', label:'跨團隊會議',     subLabel:'12:10 / 13:10', defaultTime:'12:10', defaultNote:'' },
   { id:'neu',     icon:'🧠', label:'神放跨科討論會', subLabel:'15:30',           defaultTime:'15:30', defaultNote:'' },
-  { id:'clinic',  icon:'🩺', label:'門診教學 78診',   subLabel:'08:30 / 78診',    defaultTime:'08:30', defaultNote:'' },
-  { id:'clinic87',icon:'🩺', label:'門診教學 87診',   subLabel:'02:00 / 87診',    defaultTime:'02:00', defaultNote:'' },
-  { id:'journal', icon:'📖', label:'Journal Reading',     subLabel:'橘色・可調整',  defaultTime:'',      defaultNote:'' },
+  { id:'clinic',  icon:'🩺', label:'門診教學 146診',  subLabel:'14:00 / 146診',   defaultTime:'14:00', defaultNote:'' },
+  { id:'clinic87',icon:'🩺', label:'門診教學 188診',  subLabel:'14:00 / 188診',   defaultTime:'14:00', defaultNote:'' },
+  { id:'journal', icon:'📖', label:'Journal Reading', subLabel:'09:00・可調整',   defaultTime:'09:00', defaultNote:'' },
   { id:'feedback',icon:'📋', label:'院外訓練回饋會議', subLabel:'橘色・可調整',  defaultTime:'',      defaultNote:'' },
   { id:'custom',  icon:'➕', label:'自訂活動',       subLabel:'自行輸入',        defaultTime:'',      defaultNote:'' },
 ];
@@ -24129,12 +24129,13 @@ function generateDocx() {
   var refData=[
     {week:'W1',rows:[{time:'09:00',act:'住診教學、個案討論',loc:'9A討論室/病房',doc:'葉鎧境醫師 陳霈容醫師 葉勁甫醫師'},
                       {time:'12:10',act:'跨團隊會議',loc:'9樓陽光室討論室',doc:''}]},
-    {week:'W2',rows:[{time:'09:00',act:'晨會、個案討論、Journal Reading',loc:'9樓陽光室討論室',doc:'林威佑醫師'}]},
+    {week:'W2',rows:[{time:'09:00',act:'晨會、個案討論',loc:'9樓陽光室討論室',doc:'林威佑醫師'}]},
     {week:'W3',rows:[{time:'07:30',act:'神內晨會',loc:'B4第四會議室',doc:'連立明主任'},
                       {time:'12:30',act:'神內午餐會',loc:'B4第五會議室',doc:'連立明主任'},
                       {time:'15:30',act:'神放跨科討論會',loc:'B4第五會議室',doc:'連立明主任'}]},
-    {week:'W4',rows:[{time:'08:30',act:'門診教學',loc:'B1門診78診(家醫科診區)',doc:'林威佑醫師'}]},
-    {week:'W5',rows:[{time:'02:00',act:'門診教學',loc:'B2 門診 78 診(神經科診區)',doc:'葉鎧境醫師'}]},
+    {week:'W4',rows:[{time:'09:00',act:'晨會、個案討論、Journal Reading',loc:'9樓陽光室討論室',doc:'林威佑醫師'}]},
+    {week:'W3/W4',rows:[{time:'14:00',act:'門診教學',loc:'B1門診146診(家醫科診區)',doc:'林威佑醫師'}]},
+    {week:'W5',rows:[{time:'14:00',act:'門診教學',loc:'B2 門診 188 診(神經科診區)',doc:'葉鎧境醫師'}]},
     {week:'W4/W5',rows:[{time:'07:30',act:'住院醫師晨會、全院晨會',loc:'B1會議室',doc:''}]}
   ];
 
@@ -24223,13 +24224,19 @@ function seedDefaultEvents() {
     }
   });
 
-  // (3) 門診教學 on 1st and 2nd Thursday of month
-  [1, 2].forEach(function(n) {
-    var thu = nthInMonthDay(3, n);
-    if (thu) {
-      orangeEvents.push({ id: nextId++, dateKey: dateKey(thu), paletteId: 'clinic', name: '門診教學 78診', time: '08:30', note: '' });
+  // (3) 門診教學 146診 on 3rd and 4th Friday of month (下午 14:00)
+  [3, 4].forEach(function(n) {
+    var fri = nthInMonthDay(4, n);
+    if (fri) {
+      orangeEvents.push({ id: nextId++, dateKey: dateKey(fri), paletteId: 'clinic', name: '門診教學 146診', time: '14:00', note: '' });
     }
   });
+
+  // (4) Journal Reading on 4th Tuesday of month (早上 09:00)
+  var tue4 = nthInMonthDay(1, 4);
+  if (tue4) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(tue4), paletteId: 'journal', name: 'Journal Reading', time: '09:00', note: '' });
+  }
 }
 
 // Call seedDefaultEvents only once per year-month combination.
