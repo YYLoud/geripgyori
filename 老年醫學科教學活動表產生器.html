@@ -23343,6 +23343,17 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
     <hr class="divider">
 
     <div class="s-sec">
+      <div class="s-sec-title">PGY 門診教學分配</div>
+      <div id="pgyDocStatus" style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.5;background:#F4F7FB;border:1px solid var(--border);border-radius:6px;padding:6px 8px;"></div>
+      <div style="display:flex;gap:6px;">
+        <button type="button" onclick="applyClinicPGYAssignment()" style="flex:1;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;">🩺 自動分配門診</button>
+        <button type="button" onclick="openPgyPasteModal()" style="background:#fff;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:11px;cursor:pointer;">貼上名單</button>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="s-sec">
       <div class="s-sec-title">固定活動（黑色）</div>
       <div class="switch-row"><label class="sw"><input type="checkbox" id="tog_tue" checked onchange="render()"><span class="sw-track"></span></label><span>週二 09:00 晨會（含個案討論）</span></div>
       <div class="switch-row"><label class="sw"><input type="checkbox" id="tog_wed1" checked onchange="render()"><span class="sw-track"></span></label><span>週三 07:30 神內晨會</span></div>
@@ -23420,6 +23431,26 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
     <div class="modal-footer">
       <button onclick="closeModal()">取消</button>
       <button class="btn-ok" onclick="confirmAdd()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- PGY Paste Modal -->
+<div class="modal-bg" id="pgyModalBg" style="display:none" onclick="if(event.target===this)closePgyModal()">
+  <div class="modal" style="max-width:380px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <h3 style="margin:0;font-size:15px;color:var(--text);">📋 貼上本月 PGY 醫師名單</h3>
+      <button onclick="closePgyModal()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.4;">
+      每行一位醫師姓名，將依規則自動分配門診教學：<br>
+      • 4位PGY：W1四(AB)、W2四(CD)、W3五(DA)、W4五(BC)<br>
+      • 3位PGY：W1四(AB)、W2四(C)、W3五(CA)、W4五(B)
+    </div>
+    <textarea id="pgyPasteInput" rows="5" placeholder="例如：&#10;王大明&#10;李小美&#10;陳國安&#10;林志豪" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;resize:vertical;"></textarea>
+    <div class="modal-footer" style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
+      <button onclick="closePgyModal()">取消</button>
+      <button class="btn-ok" onclick="confirmPgyPaste()">確認並分配</button>
     </div>
   </div>
 </div>
@@ -23955,6 +23986,7 @@ function changeMonth(delta) {
   document.getElementById('monthSel').value = month;
   seedIfNeeded();
   render();
+  updatePGYStatusUI();
 }
 
 function onYearMonthChange() {
@@ -23962,6 +23994,7 @@ function onYearMonthChange() {
   month   = parseInt(document.getElementById('monthSel').value);
   seedIfNeeded();
   render();
+  updatePGYStatusUI();
 }
 
 // ══════════════════════════════════════════════════════
@@ -24179,6 +24212,205 @@ function generateDocx() {
 }
 
 // ══════════════════════════════════════════════════════
+//  PGY DOCTORS & CLINIC ALLOCATION
+// ══════════════════════════════════════════════════════
+
+function getPGYDoctorsForMonth(y, m) {
+  var mCode = y * 100 + m; // e.g. 11508
+
+  // 1. Check custom manual input for this month
+  try {
+    var customRaw = localStorage.getItem('geripgy_manual_docs_' + mCode);
+    if (customRaw) {
+      var cDocs = JSON.parse(customRaw);
+      if (Array.isArray(cDocs) && cDocs.length > 0) return cDocs;
+    }
+  } catch(e) {}
+
+  // 2. Check geripgy_all_schedule_doctors (uploaded schedule in 名單查詢)
+  try {
+    var allRaw = localStorage.getItem('geripgy_all_schedule_doctors');
+    if (allRaw) {
+      var allData = JSON.parse(allRaw);
+      if (allData && allData[mCode] && allData[mCode].length > 0) {
+        return allData[mCode];
+      }
+    }
+  } catch(e) {}
+
+  // 3. Check geripgy_transfer_doctors (copied month in 名單查詢)
+  try {
+    var trRaw = localStorage.getItem('geripgy_transfer_doctors');
+    if (trRaw) {
+      var trData = JSON.parse(trRaw);
+      if (trData && trData.doctors && trData.doctors.length > 0) {
+        if (!trData.monthCode || parseInt(trData.monthCode) === mCode) {
+          return trData.doctors;
+        }
+      }
+    }
+  } catch(e) {}
+
+  return [];
+}
+
+function getClinicDocAssignments(docs) {
+  if (!docs || docs.length === 0) {
+    return { w1Thu: '', w2Thu: '', w3Fri: '', w4Fri: '' };
+  }
+  var names = docs.map(function(d) {
+    var rawName = typeof d === 'string' ? d : (d.name || '');
+    return rawName.replace(/醫師$/, '').trim();
+  }).filter(Boolean);
+
+  var n = names.length;
+  if (n === 4) {
+    // 4位：W1四=AB, W2四=CD, W3五=DA, W4五=BC
+    return {
+      w1Thu: names[0] + '、' + names[1],
+      w2Thu: names[2] + '、' + names[3],
+      w3Fri: names[3] + '、' + names[0],
+      w4Fri: names[1] + '、' + names[2]
+    };
+  } else if (n === 3) {
+    // 3位：W1四=AB, W2四=C, W3五=CA, W4五=B
+    return {
+      w1Thu: names[0] + '、' + names[1],
+      w2Thu: names[2],
+      w3Fri: names[2] + '、' + names[0],
+      w4Fri: names[1]
+    };
+  } else if (n === 2) {
+    return {
+      w1Thu: names[0],
+      w2Thu: names[1],
+      w3Fri: names[0],
+      w4Fri: names[1]
+    };
+  } else if (n === 1) {
+    return {
+      w1Thu: names[0],
+      w2Thu: names[0],
+      w3Fri: names[0],
+      w4Fri: names[0]
+    };
+  } else {
+    // >= 5位
+    return {
+      w1Thu: names[0] + '、' + names[1],
+      w2Thu: names[2] + '、' + names[3],
+      w3Fri: names[4] + '、' + names[0],
+      w4Fri: names[1 % n] + '、' + names[2 % n]
+    };
+  }
+}
+
+function updatePGYStatusUI() {
+  var statusEl = document.getElementById('pgyDocStatus');
+  if (!statusEl) return;
+  var docs = getPGYDoctorsForMonth(rocYear, month);
+  if (docs && docs.length > 0) {
+    var names = docs.map(function(d){
+      var raw = typeof d === 'string' ? d : (d.name || '');
+      return raw.replace(/醫師$/, '').trim();
+    }).filter(Boolean);
+    var assign = getClinicDocAssignments(docs);
+    statusEl.innerHTML = '<strong>' + rocYear + '年' + month + '月 (' + names.length + '位)：</strong>' + names.join('、') +
+      '<div style="margin-top:4px;color:var(--text3);font-size:10px;line-height:1.4;">' +
+      'W1四(146): ' + (assign.w1Thu || '--') + '<br>' +
+      'W2四(146): ' + (assign.w2Thu || '--') + '<br>' +
+      'W3五(188): ' + (assign.w3Fri || '--') + '<br>' +
+      'W4五(188): ' + (assign.w4Fri || '--') + '</div>';
+  } else {
+    statusEl.innerHTML = '<em>未檢測到本月 PGY 名單。可先至「名單查詢」上傳學程表，或點「貼上名單」輸入。</em>';
+  }
+}
+
+function applyClinicPGYAssignment(customDocs) {
+  var docs = customDocs || getPGYDoctorsForMonth(rocYear, month);
+  if (!docs || docs.length === 0) {
+    showToast('未檢測到本月 PGY 醫師名單，請先至「名單查詢」或點「貼上名單」輸入');
+    return false;
+  }
+
+  var assignments = getClinicDocAssignments(docs);
+  var weeks = getCalWeeks();
+  var inMonthWeeks = weeks.filter(function(w) {
+    return w.some(function(d) { return d.getMonth()+1 === month; });
+  });
+  function nthInMonthDay(colIndex, n) {
+    var count = 0;
+    for (var wi = 0; wi < inMonthWeeks.length; wi++) {
+      var d = inMonthWeeks[wi][colIndex];
+      if (d && d.getMonth()+1 === month) {
+        count++;
+        if (count === n) return d;
+      }
+    }
+    return null;
+  }
+
+  var targets = [
+    { d: nthInMonthDay(3, 1), palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w1Thu },
+    { d: nthInMonthDay(3, 2), palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w2Thu },
+    { d: nthInMonthDay(4, 3), palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w3Fri },
+    { d: nthInMonthDay(4, 4), palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w4Fri }
+  ];
+
+  targets.forEach(function(t) {
+    if (!t.d) return;
+    var dk = dateKey(t.d);
+    var ev = orangeEvents.find(function(e) {
+      return e.dateKey === dk && (e.paletteId === t.palId || e.name.indexOf('門診教學') !== -1);
+    });
+    if (ev) {
+      ev.note = t.note || '';
+      if (!ev.time) ev.time = t.time;
+    } else {
+      orangeEvents.push({ id: nextId++, dateKey: dk, paletteId: t.palId, name: t.name, time: t.time, note: t.note || '' });
+    }
+  });
+
+  render();
+  updatePGYStatusUI();
+  showToast('✓ 已為 ' + docs.length + ' 位 PGY 醫師自動分配門診教學！');
+  return true;
+}
+
+function openPgyPasteModal() {
+  var docs = getPGYDoctorsForMonth(rocYear, month);
+  var names = docs.map(function(d){
+    var raw = typeof d === 'string' ? d : (d.name || '');
+    return raw.replace(/醫師$/, '').trim();
+  }).filter(Boolean);
+  document.getElementById('pgyPasteInput').value = names.join('\n');
+  document.getElementById('pgyModalBg').style.display = 'flex';
+}
+
+function closePgyModal() {
+  document.getElementById('pgyModalBg').style.display = 'none';
+}
+
+function confirmPgyPaste() {
+  var val = document.getElementById('pgyPasteInput').value.trim();
+  if (!val) {
+    showToast('請輸入醫師姓名');
+    return;
+  }
+  var lines = val.split(/[\n,，、\t]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+  if (lines.length === 0) {
+    showToast('請輸入至少一位醫師姓名');
+    return;
+  }
+  var mCode = rocYear * 100 + month;
+  try {
+    localStorage.setItem('geripgy_manual_docs_' + mCode, JSON.stringify(lines));
+  } catch(e) {}
+  applyClinicPGYAssignment(lines);
+  closePgyModal();
+}
+
+// ══════════════════════════════════════════════════════
 //  INIT — default events seeded per month
 // ══════════════════════════════════════════════════════
 
@@ -24225,20 +24457,27 @@ function seedDefaultEvents() {
   });
 
   // (3) 門診教學 146診 on 1st and 2nd Thursday of month (上午 08:30)
-  [1, 2].forEach(function(n) {
-    var thu = nthInMonthDay(3, n);
-    if (thu) {
-      orangeEvents.push({ id: nextId++, dateKey: dateKey(thu), paletteId: 'clinic', name: '門診教學 146診', time: '08:30', note: '' });
-    }
-  });
+  var pgyDocs = getPGYDoctorsForMonth(rocYear, month);
+  var assignments = getClinicDocAssignments(pgyDocs);
+
+  var thu1 = nthInMonthDay(3, 1);
+  if (thu1) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(thu1), paletteId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w1Thu || '' });
+  }
+  var thu2 = nthInMonthDay(3, 2);
+  if (thu2) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(thu2), paletteId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w2Thu || '' });
+  }
 
   // (4) 門診教學 188診 on 3rd and 4th Friday of month (下午 14:00)
-  [3, 4].forEach(function(n) {
-    var fri = nthInMonthDay(4, n);
-    if (fri) {
-      orangeEvents.push({ id: nextId++, dateKey: dateKey(fri), paletteId: 'clinic87', name: '門診教學 188診', time: '14:00', note: '' });
-    }
-  });
+  var fri3 = nthInMonthDay(4, 3);
+  if (fri3) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(fri3), paletteId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w3Fri || '' });
+  }
+  var fri4 = nthInMonthDay(4, 4);
+  if (fri4) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(fri4), paletteId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w4Fri || '' });
+  }
 
   // (5) Journal Reading on 4th Tuesday of month (早上 09:00)
   var tue4 = nthInMonthDay(1, 4);
@@ -24261,6 +24500,7 @@ document.getElementById('monthSel').value = month;
 renderPalette();
 seedIfNeeded();
 render();
+updatePGYStatusUI();
 
 // ── OneDrive upload ──────────────────────────────────────────
 const _OD = {

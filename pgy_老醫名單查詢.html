@@ -744,6 +744,9 @@ function handleFile(file) {
       const { result, monthList, hasContactInfo } = parseExcel(new Uint8Array(e.target.result));
       scheduleData = result;
       allMonths = monthList;
+      try {
+        localStorage.setItem('geripgy_all_schedule_doctors', JSON.stringify(result));
+      } catch(errLS) {}
 
       zone.classList.add('has-file');
       document.getElementById('uploadTitle').textContent = '✓ ' + file.name;
@@ -1012,7 +1015,10 @@ function showCopyToast(monthName, count) {
   }
   toast.innerHTML = `
     <div>✓ 已複製 <strong>${monthName}</strong> 共 ${count} 位醫師名單與電話！</div>
-    <a href="pgy_院外訓練scheduling2.html" target="_blank" style="background:#C17F24;color:#fff;padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;white-space:nowrap;">🚀 前往院外訓練排班 (自動帶入)</a>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <a href="pgy_院外訓練scheduling2.html" target="_blank" style="background:#C17F24;color:#fff;padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;white-space:nowrap;">🚀 院外排班</a>
+      <a href="老年醫學科教學活動表產生器.html" target="_blank" style="background:#2E86AB;color:#fff;padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:600;font-size:0.8rem;white-space:nowrap;">📊 教學活動表 (自動分配門診)</a>
+    </div>
   `;
   toast.style.display = 'flex';
   setTimeout(() => { if (toast) toast.style.display = 'none'; }, 8000);
