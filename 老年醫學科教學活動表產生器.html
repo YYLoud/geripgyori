@@ -23445,9 +23445,9 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
       <button onclick="closePgyModal()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
     </div>
     <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.4;">
-      每行一位醫師姓名，將依規則自動分配門診教學：<br>
-      • 4位PGY：W1四(AB)、W2四(CD)、W3五(DA)、W4五(BC)<br>
-      • 3位PGY：W1四(AB)、W2四(C)、W3五(CA)、W4五(B)
+      每行一位醫師姓名，將依規則自動分配門診教學（一個門診一位學生）：<br>
+      • 3位PGY：依序為 A、B、C、A（W1四、W2四、W3五、W4五）<br>
+      • 4位PGY：依序為 A、B、C、D
     </div>
     <textarea id="pgyPasteInput" rows="5" placeholder="例如：&#10;王大明&#10;李小美&#10;陳國安&#10;林志豪" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;resize:vertical;"></textarea>
     <div class="modal-footer" style="margin-top:10px;display:flex;justify-content:flex-end;gap:6px;">
@@ -24047,12 +24047,12 @@ function generateDocx() {
 
   var weeks = getCalWeeks();
   var calRows = [];
-  var colW = [2160,2160,2160,2160,2160];
+  var colW = [2072, 2171, 2069, 2079, 2069];
 
   // Title row
-  calRows.push(new D.TableRow({ height:{value:492,rule:'exact'}, children:[
+  calRows.push(new D.TableRow({ height:{value:510,rule:'exact'}, children:[
     mkCell([mkPara(mkRun(rocYear+'年'+month+'月 老年醫學教學活動表', BLACK, 36))],
-      {w:10800, wt:WT.DXA, span:5, borders:{top:NIL,left:NIL,bottom:SNGL,right:NIL}})
+      {w:10460, wt:WT.DXA, span:5, borders:{top:NIL,left:NIL,bottom:SNGL,right:NIL}})
   ]}));
 
   // Day header row
@@ -24131,13 +24131,13 @@ function generateDocx() {
   });
 
   var calTable = new D.Table({
-    width:{size:10800,type:WT.DXA},
+    width:{size:10460,type:WT.DXA},
     rows:calRows,
-    columnWidths:[2160,2160,2160,2160,2160]
+    columnWidths:[2072, 2171, 2069, 2079, 2069]
   });
 
-  // Reference table
-  var rColW=[720,960,3840,2880,2400];
+  // Reference table (Table 2)
+  var rColW=[720,960,3840,2880,2085];
   function mkRCell(paras,opts){
     opts=opts||{};
     return new D.TableCell({
@@ -24162,16 +24162,15 @@ function generateDocx() {
   }));
 
   var refData=[
-    {week:'W1',rows:[{time:'09:00',act:'住診教學、個案討論',loc:'9A討論室/病房',doc:'葉鎧境醫師 陳霈容醫師 葉勁甫醫師'},
-                      {time:'12:10',act:'跨團隊會議',loc:'9樓陽光室討論室',doc:''}]},
-    {week:'W2',rows:[{time:'09:00',act:'晨會、個案討論',loc:'9樓陽光室討論室',doc:'林威佑醫師'}]},
-    {week:'W3',rows:[{time:'07:30',act:'神內晨會',loc:'B4第四會議室',doc:'連立明主任'},
-                      {time:'12:30',act:'神內午餐會',loc:'B4第五會議室',doc:'連立明主任'},
-                      {time:'15:30',act:'神放跨科討論會',loc:'B4第五會議室',doc:'連立明主任'}]},
-    {week:'W4',rows:[{time:'08:30',act:'門診教學',loc:'B1門診146診(家醫科診區)',doc:'林威佑醫師'},
-                      {time:'09:00',act:'晨會、個案討論、Journal Reading',loc:'9樓陽光室討論室',doc:'林威佑醫師'}]},
+    {week:'W1',rows:[{time:'09:00',act:'住診教學、個案討論',loc:'7K討論室/病房',doc:'葉鎧境醫師 陳霈容醫師 葉勁甫醫師'},
+                      {time:'12:10',act:'跨團隊會議',loc:'7K討論室',doc:''}]},
+    {week:'W2',rows:[{time:'09:00',act:'晨會、個案討論、Journal Reading',loc:'7K討論室',doc:'林威佑醫師'}]},
+    {week:'W3',rows:[{time:'07:30',act:'神內晨會',loc:'友誼大樓F207會議室',doc:'連立明主任'},
+                      {time:'12:30',act:'神內午餐會',loc:'友誼大樓F202會議室',doc:'連立明主任'},
+                      {time:'15:30',act:'神放跨科討論會',loc:'友誼大樓F202會議室',doc:'連立明主任'}]},
+    {week:'W4',rows:[{time:'08:30',act:'門診教學',loc:'B1門診146診(家醫科診區)',doc:'林威佑醫師'}]},
     {week:'W5',rows:[{time:'14:00',act:'門診教學',loc:'B2 門診 188 診(神經科診區)',doc:'葉鎧境醫師'}]},
-    {week:'W4/W5',rows:[{time:'07:30',act:'住院醫師晨會、全院晨會',loc:'B1會議室',doc:''}]}
+    {week:'W4/W5',rows:[{time:'07:30',act:'住院醫師晨會、全院晨會',loc:'友誼大樓會議室',doc:''}]}
   ];
 
   refData.forEach(function(g){
@@ -24186,12 +24185,88 @@ function generateDocx() {
     });
   });
 
-  var refTable = new D.Table({width:{size:10800,type:WT.DXA},columnWidths:rColW,rows:refRows});
+  var refTable = new D.Table({width:{size:10485,type:WT.DXA},columnWidths:rColW,rows:refRows});
+
+  // Table 3: 門診教學時段
+  var cColW = [704, 992, 818, 3010, 2835, 2126];
+  var clinicEvents = orangeEvents.filter(function(e) {
+    if (!e.dateKey) return false;
+    var parts = e.dateKey.split('-');
+    var ey = parseInt(parts[0]);
+    var em = parseInt(parts[1]);
+    return ey === getADYear() && em === month &&
+           (e.paletteId === 'clinic' || e.paletteId === 'clinic87' || e.name.indexOf('門診教學') !== -1);
+  });
+  clinicEvents.sort(function(a, b) {
+    var pa = a.dateKey.split('-').map(Number);
+    var pb = b.dateKey.split('-').map(Number);
+    return (pa[0] - pb[0]) || (pa[1] - pb[1]) || (pa[2] - pb[2]);
+  });
+
+  var clinicRows = [];
+  clinicRows.push(new D.TableRow({
+    height: { value: 266, rule: 'exact' },
+    children: ['日期', '星期', '時間', '參加人員', '地點', '指導老師'].map(function(h, i) {
+      return mkRCell(rPara(h, AT.CENTER), { w: cColW[i], fill: 'D2E9F4' });
+    })
+  }));
+
+  clinicEvents.forEach(function(ev) {
+    var parts = ev.dateKey.split('-');
+    var dStr = parts[1] + '/' + parts[2];
+    var evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    var dowStr = 'W' + evDate.getDay();
+    var is188 = (ev.name.indexOf('188') !== -1 || ev.paletteId === 'clinic87');
+    var timeStr = ev.time || (is188 ? '14:00' : '08:30');
+    var locStr = is188 ? 'B2 門診 188 診(神經科診區)' : 'B1門診146診(家醫科診區)';
+    var docStr = is188 ? '葉鎧境醫師' : '林威佑醫師';
+    var studentStr = ev.note || '';
+
+    var cells = [
+      mkRCell(rPara(dStr, AT.CENTER), { w: cColW[0] }),
+      mkRCell(rPara(dowStr, AT.CENTER), { w: cColW[1] }),
+      mkRCell(rPara(timeStr, AT.CENTER), { w: cColW[2] }),
+      mkRCell(rPara(studentStr, AT.CENTER), { w: cColW[3] }),
+      mkRCell(rPara(locStr, AT.CENTER), { w: cColW[4] }),
+      mkRCell(rPara(docStr, AT.CENTER), { w: cColW[5] })
+    ];
+    clinicRows.push(new D.TableRow({
+      height: { value: 266, rule: 'exact' },
+      children: cells
+    }));
+  });
+
+  var clinicTable = new D.Table({
+    width: { size: 10485, type: WT.DXA },
+    columnWidths: cColW,
+    rows: clinicRows
+  });
+
+  var docChildren = [
+    calTable,
+    new D.Paragraph({text:'', spacing:{after:120}}),
+    refTable
+  ];
+
+  if (clinicEvents.length > 0) {
+    docChildren.push(new D.Paragraph({text:''}));
+    docChildren.push(new D.Paragraph({
+      children: [new D.TextRun({text: '門診教學時段', font: FONT, size: 20, color: BLACK})],
+      spacing: {after: 60}
+    }));
+    docChildren.push(clinicTable);
+    docChildren.push(new D.Paragraph({text:''}));
+  }
 
   var ddoc = new D.Document({
     sections:[{
-      properties:{ page:{ size:{width:15840,height:12240,orientation:'landscape'}, margin:{top:720,bottom:720,left:720,right:720} } },
-      children:[calTable, new D.Paragraph({text:'',spacing:{after:120}}), refTable]
+      properties:{
+        page:{
+          size: { width: 11906, height: 16838 }, // A4 Portrait
+          margin: { top: 720, bottom: 720, left: 720, right: 720 }
+        }
+      },
+      children: docChildren
     }]
   });
 
@@ -24253,6 +24328,21 @@ function getPGYDoctorsForMonth(y, m) {
     }
   } catch(e) {}
 
+  // 4. Fallback defaults from 115學年度 PGY2 老醫學程表
+  var defaultRosters = {
+    11508: ['張汝禎', '林家助', '張大中'],
+    11509: ['鄒曉揚', '李昀庭', '李沛東'],
+    11510: ['李宣諠', '沈弘祥', '郭彥希'],
+    11511: ['郭王雨田', '林享辰', '柯芊劭'],
+    11512: ['林紘睿', '陶孟昀', '李易淳'],
+    11601: ['張乃文', '林芷筠', '林蓁芸'],
+    11602: ['黃孟捷', '陳重佑', '戴翊如'],
+    11603: ['林靖瑄', '謝皓穎', '徐林陞', '沈珍伊'],
+    11604: ['陳申霖', '姜綾嵐', '謝昇峰'],
+    11605: ['何權', '林俊毓', '楊萬暄', '徐睿']
+  };
+  if (defaultRosters[mCode]) return defaultRosters[mCode];
+
   return [];
 }
 
@@ -24266,45 +24356,17 @@ function getClinicDocAssignments(docs) {
   }).filter(Boolean);
 
   var n = names.length;
-  if (n === 4) {
-    // 4位：W1四=AB, W2四=CD, W3五=DA, W4五=BC
-    return {
-      w1Thu: names[0] + '、' + names[1],
-      w2Thu: names[2] + '、' + names[3],
-      w3Fri: names[3] + '、' + names[0],
-      w4Fri: names[1] + '、' + names[2]
-    };
-  } else if (n === 3) {
-    // 3位：W1四=AB, W2四=C, W3五=CA, W4五=B
-    return {
-      w1Thu: names[0] + '、' + names[1],
-      w2Thu: names[2],
-      w3Fri: names[2] + '、' + names[0],
-      w4Fri: names[1]
-    };
-  } else if (n === 2) {
-    return {
-      w1Thu: names[0],
-      w2Thu: names[1],
-      w3Fri: names[0],
-      w4Fri: names[1]
-    };
-  } else if (n === 1) {
-    return {
-      w1Thu: names[0],
-      w2Thu: names[0],
-      w3Fri: names[0],
-      w4Fri: names[0]
-    };
-  } else {
-    // >= 5位
-    return {
-      w1Thu: names[0] + '、' + names[1],
-      w2Thu: names[2] + '、' + names[3],
-      w3Fri: names[4] + '、' + names[0],
-      w4Fri: names[1 % n] + '、' + names[2 % n]
-    };
+  if (n === 0) {
+    return { w1Thu: '', w2Thu: '', w3Fri: '', w4Fri: '' };
   }
+
+  // 一個門診一個學生參與，依序輪替（例如3位依 ABCA 順序安排）
+  return {
+    w1Thu: names[0 % n] || '',
+    w2Thu: names[1 % n] || '',
+    w3Fri: names[2 % n] || '',
+    w4Fri: (n === 3 ? names[0] : (names[3 % n] || ''))
+  };
 }
 
 function updatePGYStatusUI() {
@@ -24352,11 +24414,30 @@ function applyClinicPGYAssignment(customDocs) {
     return null;
   }
 
+  // 找出 Monday 落在當月的教學週次
+  var monWeeks = inMonthWeeks.filter(function(w) { return w[0].getMonth()+1 === month; });
+  var thu1 = monWeeks[0] ? monWeeks[0][3] : nthInMonthDay(3, 1);
+  var thu2 = monWeeks[1] ? monWeeks[1][3] : nthInMonthDay(3, 2);
+  var fri3 = nthInMonthDay(4, 3);
+  var fri4 = nthInMonthDay(4, 4);
+
+  // 清理早於第1教學週四且未命名的門診活動（如月初跨月週的空白活動）
+  if (thu1) {
+    orangeEvents = orangeEvents.filter(function(e) {
+      if (e.paletteId === 'clinic' || e.name.indexOf('146診') !== -1) {
+        var parts = e.dateKey.split('-');
+        var d = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+        if (d < thu1 && !e.note) return false;
+      }
+      return true;
+    });
+  }
+
   var targets = [
-    { d: nthInMonthDay(3, 1), palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w1Thu },
-    { d: nthInMonthDay(3, 2), palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w2Thu },
-    { d: nthInMonthDay(4, 3), palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w3Fri },
-    { d: nthInMonthDay(4, 4), palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w4Fri }
+    { d: thu1, palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w1Thu },
+    { d: thu2, palId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w2Thu },
+    { d: fri3, palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w3Fri },
+    { d: fri4, palId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w4Fri }
   ];
 
   targets.forEach(function(t) {
@@ -24440,6 +24521,11 @@ function seedDefaultEvents() {
     return null;
   }
 
+  // 預設國定假日 (115年10月: 10/9 雙十國慶連假)
+  if (rocYear === 115 && month === 10) {
+    if (holidays.indexOf('10/9') === -1) holidays.push('10/9');
+  }
+
   // (1) 教學住診 on 1st, 2nd, 3rd, and 4th Monday of month
   [1, 2, 3, 4].forEach(function(n) {
     var mon = nthInMonthDay(0, n);
@@ -24458,33 +24544,36 @@ function seedDefaultEvents() {
     }
   });
 
-  // (3) 門診教學 146診 on 1st and 2nd Thursday of month (上午 08:30)
+  // 找出主要教學週次
+  var monWeeks = inMonthWeeks.filter(function(w) { return w[0].getMonth()+1 === month; });
+  var thu1 = monWeeks[0] ? monWeeks[0][3] : nthInMonthDay(3, 1);
+  var thu2 = monWeeks[1] ? monWeeks[1][3] : nthInMonthDay(3, 2);
+  var fri3 = nthInMonthDay(4, 3);
+  var fri4 = nthInMonthDay(4, 4);
+
+  // (3) 門診教學 146診 on 1st and 2nd teaching Thursday of month (上午 08:30)
   var pgyDocs = getPGYDoctorsForMonth(rocYear, month);
   var assignments = getClinicDocAssignments(pgyDocs);
 
-  var thu1 = nthInMonthDay(3, 1);
   if (thu1) {
     orangeEvents.push({ id: nextId++, dateKey: dateKey(thu1), paletteId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w1Thu || '' });
   }
-  var thu2 = nthInMonthDay(3, 2);
   if (thu2) {
     orangeEvents.push({ id: nextId++, dateKey: dateKey(thu2), paletteId: 'clinic', name: '門診教學 146診', time: '08:30', note: assignments.w2Thu || '' });
   }
 
   // (4) 門診教學 188診 on 3rd and 4th Friday of month (下午 14:00)
-  var fri3 = nthInMonthDay(4, 3);
   if (fri3) {
     orangeEvents.push({ id: nextId++, dateKey: dateKey(fri3), paletteId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w3Fri || '' });
   }
-  var fri4 = nthInMonthDay(4, 4);
   if (fri4) {
     orangeEvents.push({ id: nextId++, dateKey: dateKey(fri4), paletteId: 'clinic87', name: '門診教學 188診', time: '14:00', note: assignments.w4Fri || '' });
   }
 
-  // (5) Journal Reading on 4th Tuesday of month (早上 09:00)
-  var tue4 = nthInMonthDay(1, 4);
-  if (tue4) {
-    orangeEvents.push({ id: nextId++, dateKey: dateKey(tue4), paletteId: 'journal', name: 'Journal Reading', time: '09:00', note: '' });
+  // (5) Journal Reading on 3rd Tuesday for 115/10 (10/20) or 4th Tuesday of month (早上 09:00)
+  var tueJournal = (rocYear === 115 && month === 10) ? nthInMonthDay(1, 3) : nthInMonthDay(1, 4);
+  if (tueJournal) {
+    orangeEvents.push({ id: nextId++, dateKey: dateKey(tueJournal), paletteId: 'journal', name: 'Journal Reading', time: '09:00', note: '' });
   }
 }
 
