@@ -23239,6 +23239,25 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
 }
 .meet-btn.on { background: var(--orange); color: #fff; border-color: var(--orange); }
 
+/* Clinic PGY selector inside cell & sidebar */
+.clinic-select {
+  width: 100%; padding: 1px 4px; border-radius: 3px; font-size: 9.5px;
+  border: 1px solid var(--orange-b); background: #fff; color: var(--orange);
+  font-family: 'Noto Sans TC', sans-serif; font-weight: 500; cursor: pointer;
+  outline: none; margin-top: 1px;
+}
+.clinic-select:hover, .clinic-select:focus { border-color: var(--orange); }
+.sidebar-clinic-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  margin-top: 4px; font-size: 10.5px; color: var(--text2);
+}
+.sidebar-clinic-select {
+  flex: 1; min-width: 0; padding: 2px 4px; border-radius: 4px; font-size: 11px;
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  font-family: 'Noto Sans TC', sans-serif; cursor: pointer; outline: none;
+}
+.sidebar-clinic-select:focus { border-color: #1B5E8A; }
+
 /* ── Add event button in cell ── */
 .cell-add-btn {
   margin-top: auto; display: flex; align-items: center; gap: 3px;
@@ -23321,6 +23340,9 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
     </button>
     <button class="dl-btn" id="od-upload-btn" onclick="odUpload()" disabled style="background:#0078D4;border:none;margin-left:6px;opacity:0.45;">
       ☁ <span class="od-label">先產生文件，再上傳到 OneDrive</span>
+    </button>
+    <button class="dl-btn" id="igBtn" onclick="openScheduleIGGenerator()" style="background:linear-gradient(135deg,#FF6B4A,#EC4899);border:none;margin-left:6px;">
+      📱 轉換成 IG 懶人包
     </button>
   </div>
 
@@ -23655,6 +23677,8 @@ function renderCalendar() {
           cell.appendChild(meetingChip(ev, dkey, mt));
         } else if (ev.paletteId === 'teach') {
           cell.appendChild(orangeChip(ev, '教學住診（任一查房時）'));
+        } else if (isClinicEvent(ev)) {
+          cell.appendChild(clinicChip(ev));
         } else {
           var lbl = (ev.time ? ev.time + ' ' : '') + ev.name + (ev.note ? '（'+ev.note+'）' : '');
           cell.appendChild(orangeChip(ev, lbl));
@@ -23672,6 +23696,7 @@ function renderCalendar() {
       grid.appendChild(cell);
     });
   });
+  updatePGYStatusUI();
 }
 
 function fixedChip(text, dkey, fixedId) {
@@ -23771,6 +23796,109 @@ function meetingChip(ev, dkey, mt) {
     picker.appendChild(btn);
   });
   wrap.appendChild(picker);
+
+  wrap.addEventListener('dragstart', function(e) {
+    dragEvId  = ev.id;
+    dragPalId = null;
+    dragEl    = wrap;
+    wrap.style.opacity = '.3';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'ev:'+ev.id);
+  });
+  wrap.addEventListener('dragend', function() {
+    wrap.style.opacity = '';
+    dragEvId = null; dragEl = null;
+    clearDropTargets();
+  });
+  return wrap;
+}
+
+function isClinicEvent(ev) {
+  return ev && (ev.paletteId === 'clinic' || ev.paletteId === 'clinic87' || (ev.name && ev.name.indexOf('門診教學') !== -1));
+}
+
+function createClinicSelect(ev, className) {
+  var sel = document.createElement('select');
+  sel.className = className;
+  sel.title = '手動調整參與門診教學的 PGY 醫師';
+
+  var names = getPGYDoctorNamesForMonth(rocYear, month);
+  var current = (ev.note || '').trim();
+
+  var optEmpty = document.createElement('option');
+  optEmpty.value = '';
+  optEmpty.textContent = '（未指定 PGY）';
+  sel.appendChild(optEmpty);
+
+  names.forEach(function(n) {
+    var opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    sel.appendChild(opt);
+  });
+
+  if (current && names.indexOf(current) === -1) {
+    var optCur = document.createElement('option');
+    optCur.value = current;
+    optCur.textContent = current;
+    sel.appendChild(optCur);
+  }
+
+  var optCustom = document.createElement('option');
+  optCustom.value = '__CUSTOM__';
+  optCustom.textContent = '✎ 自訂輸入...';
+  sel.appendChild(optCustom);
+
+  sel.value = current;
+
+  ['click', 'mousedown', 'dragstart'].forEach(function(evtName) {
+    sel.addEventListener(evtName, function(e) { e.stopPropagation(); });
+  });
+
+  sel.addEventListener('change', function(e) {
+    e.stopPropagation();
+    if (sel.value === '__CUSTOM__') {
+      var input = window.prompt('請輸入參與此門診教學的 PGY 醫師姓名（留空代表清除）：', ev.note || '');
+      if (input === null) {
+        sel.value = (ev.note || '').trim();
+        return;
+      }
+      ev.note = input.trim();
+    } else {
+      ev.note = sel.value;
+    }
+    render();
+  });
+
+  return sel;
+}
+
+function clinicChip(ev) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'border:1px solid var(--orange-b);border-radius:3px;background:var(--orange-l);padding:2px 4px;position:relative;';
+  wrap.draggable = true;
+  wrap.dataset.evid = ev.id;
+
+  var row1 = document.createElement('div');
+  row1.style.cssText = 'display:flex;align-items:center;gap:3px;margin-bottom:2px;';
+
+  var lbl = document.createElement('span');
+  lbl.style.cssText = 'font-size:10px;color:var(--orange);font-weight:500;flex:1;';
+  lbl.textContent = (ev.time ? ev.time + ' ' : '') + ev.name;
+  row1.appendChild(lbl);
+
+  var del = document.createElement('button');
+  del.className = 'ev-del';
+  del.textContent = '×';
+  del.style.opacity = '0';
+  del.onclick = (function(eid){ return function(e){ e.stopPropagation(); removeEvent(eid); }; })(ev.id);
+  row1.appendChild(del);
+  wrap.appendChild(row1);
+
+  wrap.addEventListener('mouseenter', function(){ del.style.opacity='1'; });
+  wrap.addEventListener('mouseleave', function(){ del.style.opacity='0'; });
+
+  wrap.appendChild(createClinicSelect(ev, 'clinic-select'));
 
   wrap.addEventListener('dragstart', function(e) {
     dragEvId  = ev.id;
@@ -24346,6 +24474,15 @@ function getPGYDoctorsForMonth(y, m) {
   return [];
 }
 
+function getPGYDoctorNamesForMonth(y, m) {
+  var docs = getPGYDoctorsForMonth(y, m);
+  if (!docs || docs.length === 0) return [];
+  return docs.map(function(d) {
+    var rawName = typeof d === 'string' ? d : (d.name || '');
+    return rawName.replace(/醫師$/, '').trim();
+  }).filter(Boolean);
+}
+
 function getClinicDocAssignments(docs) {
   if (!docs || docs.length === 0) {
     return { w1Thu: '', w2Thu: '', w3Fri: '', w4Fri: '' };
@@ -24372,21 +24509,54 @@ function getClinicDocAssignments(docs) {
 function updatePGYStatusUI() {
   var statusEl = document.getElementById('pgyDocStatus');
   if (!statusEl) return;
-  var docs = getPGYDoctorsForMonth(rocYear, month);
-  if (docs && docs.length > 0) {
-    var names = docs.map(function(d){
-      var raw = typeof d === 'string' ? d : (d.name || '');
-      return raw.replace(/醫師$/, '').trim();
-    }).filter(Boolean);
-    var assign = getClinicDocAssignments(docs);
-    statusEl.innerHTML = '<strong>' + rocYear + '年' + month + '月 (' + names.length + '位)：</strong>' + names.join('、') +
-      '<div style="margin-top:4px;color:var(--text3);font-size:10px;line-height:1.4;">' +
+  statusEl.innerHTML = '';
+
+  var names = getPGYDoctorNamesForMonth(rocYear, month);
+  var headerDiv = document.createElement('div');
+  if (names.length > 0) {
+    headerDiv.innerHTML = '<strong>' + rocYear + '年' + month + '月 (' + names.length + '位)：</strong>' + names.join('、');
+  } else {
+    headerDiv.innerHTML = '<em>未檢測到本月 PGY 名單。可先至「名單查詢」上傳學程表，或點「貼上名單」輸入。</em>';
+  }
+  statusEl.appendChild(headerDiv);
+
+  var clinicEvs = orangeEvents.filter(isClinicEvent).slice().sort(function(a, b) {
+    if (a.dateKey !== b.dateKey) return a.dateKey < b.dateKey ? -1 : 1;
+    return (a.time || '').localeCompare(b.time || '');
+  });
+
+  if (clinicEvs.length > 0) {
+    var listWrap = document.createElement('div');
+    listWrap.style.cssText = 'margin-top:6px;border-top:1px dashed var(--border);padding-top:4px;';
+    var dowNames = ['日', '一', '二', '三', '四', '五', '六'];
+    clinicEvs.forEach(function(ev) {
+      var parts = ev.dateKey.split('-');
+      var dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      var clinicNum = (ev.paletteId === 'clinic87' || (ev.name && ev.name.indexOf('188') !== -1)) ? '188診' : '146診';
+      var dateLbl = (dObj.getMonth() + 1) + '/' + dObj.getDate() + '(' + dowNames[dObj.getDay()] + ') ' + clinicNum;
+
+      var row = document.createElement('div');
+      row.className = 'sidebar-clinic-row';
+
+      var lblSpan = document.createElement('span');
+      lblSpan.style.cssText = 'white-space:nowrap;font-weight:500;';
+      lblSpan.textContent = dateLbl;
+      row.appendChild(lblSpan);
+
+      row.appendChild(createClinicSelect(ev, 'sidebar-clinic-select'));
+      listWrap.appendChild(row);
+    });
+    statusEl.appendChild(listWrap);
+  } else if (names.length > 0) {
+    var assign = getClinicDocAssignments(names);
+    var previewDiv = document.createElement('div');
+    previewDiv.style.cssText = 'margin-top:4px;color:var(--text3);font-size:10px;line-height:1.4;';
+    previewDiv.innerHTML =
       'W1四(146): ' + (assign.w1Thu || '--') + '<br>' +
       'W2四(146): ' + (assign.w2Thu || '--') + '<br>' +
       'W3五(188): ' + (assign.w3Fri || '--') + '<br>' +
-      'W4五(188): ' + (assign.w4Fri || '--') + '</div>';
-  } else {
-    statusEl.innerHTML = '<em>未檢測到本月 PGY 名單。可先至「名單查詢」上傳學程表，或點「貼上名單」輸入。</em>';
+      'W4五(188): ' + (assign.w4Fri || '--');
+    statusEl.appendChild(previewDiv);
   }
 }
 
@@ -24898,6 +25068,80 @@ function importDraftsJSON(evt) {
 
 // Initial count update
 updateDraftCount();
+
+function openScheduleIGGenerator() {
+  var weeks = getCalWeeks();
+  var specialEvents = [];
+  var weekdays = ['W1', 'W2', 'W3', 'W4', 'W5'];
+  weeks.forEach(function(week) {
+    week.forEach(function(d, di) {
+      if (d.getMonth() + 1 !== month) return;
+      var dkey = dateKey(d);
+      var dStr = fmt(d);
+      if (isHoliday(d)) {
+        specialEvents.push({ date: dStr, dow: weekdays[di], text: '國定／休假日', kind: 'holiday' });
+        return;
+      }
+      if (weekdays[di] === 'W1' && monMeetingTime[dkey] === '13:10') {
+        specialEvents.push({ date: dStr, dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' });
+      }
+      var evs = orangeEvents.filter(function(e) { return e.dateKey === dkey; });
+      evs.forEach(function(ev) {
+        var text = (ev.time ? ev.time + ' ' : '') + ev.name + (ev.note ? '(' + ev.note + ')' : '');
+        if (text.indexOf('神放跨科討論會') !== -1) {
+          specialEvents.push({ date: dStr, dow: weekdays[di], text: text, kind: 'neuro' });
+        } else if (/journal\s*reading/i.test(text)) {
+          specialEvents.push({ date: dStr, dow: weekdays[di], text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' });
+        }
+      });
+    });
+  });
+
+  var clinicEvents = orangeEvents.filter(function(e) {
+    if (!e.dateKey) return false;
+    var parts = e.dateKey.split('-');
+    return parseInt(parts[0]) === getADYear() && parseInt(parts[1]) === month &&
+           (e.paletteId === 'clinic' || e.paletteId === 'clinic87' || e.name.indexOf('門診教學') !== -1);
+  });
+  clinicEvents.sort(function(a, b) {
+    var pa = a.dateKey.split('-').map(Number);
+    var pb = b.dateKey.split('-').map(Number);
+    return (pa[0] - pb[0]) || (pa[1] - pb[1]) || (pa[2] - pb[2]);
+  });
+  var clinicSessions = clinicEvents.map(function(ev) {
+    var parts = ev.dateKey.split('-');
+    var evDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    var is188 = (ev.name.indexOf('188') !== -1 || ev.paletteId === 'clinic87');
+    return {
+      date: parts[1] + '/' + parts[2],
+      dow: 'W' + evDate.getDay(),
+      time: ev.time || (is188 ? '14:00' : '08:30'),
+      trainee: ev.note || '',
+      loc: is188 ? 'B2 門診 188 診(神經科診區)' : 'B1門診146診(家醫科診區)',
+      doc: is188 ? '葉鎧境醫師' : '林威佑醫師'
+    };
+  });
+
+  var weeklyRef = [
+    { week: 'W1', time: '09:00', act: '住診教學、個案討論', loc: '7K討論室/病房', doc: '葉鎧境、陳霈容、葉勁甫醫師' },
+    { week: 'W1', time: '12:10', act: '跨團隊會議', loc: '7K討論室', doc: '' },
+    { week: 'W2', time: '09:00', act: '晨會、個案討論、Journal Reading', loc: '7K討論室', doc: '林威佑醫師' },
+    { week: 'W3', time: '07:30', act: '神內晨會／12:30神內午餐會', loc: '友誼大樓', doc: '連立明主任' },
+    { week: 'W4', time: '08:30', act: '門診教學', loc: 'B1門診146診(家醫科診區)', doc: '林威佑醫師' },
+    { week: 'W5', time: '14:00', act: '門診教學', loc: 'B2門診188診(神經科診區)', doc: '葉鎧境醫師' }
+  ];
+
+  try {
+    localStorage.setItem('geripgy_ig_bridge_schedule', JSON.stringify({
+      year: String(rocYear),
+      month: String(month),
+      specialEvents: specialEvents,
+      weeklyRef: weeklyRef,
+      clinicSessions: clinicSessions
+    }));
+  } catch (e) {}
+  window.open('ig_懶人包產生器.html?from=schedule', '_blank');
+}
 </script>
 </body>
 </html>
