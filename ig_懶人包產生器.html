@@ -1,0 +1,1879 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IG 懶人包產生器 — 老年醫學科</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F4F7FB;
+  --card: #FFFFFF;
+  --border: #DDE3EC;
+  --text: #1A1A2E;
+  --muted: #64748B;
+  --primary: #FF6B4A;
+  --primary-dark: #E85535;
+  --teal: #0D9488;
+  --blue: #1B5E8A;
+}
+
+body {
+  font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 4rem;
+}
+
+/* Top Bar */
+.topbar {
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.back-link {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.back-link:hover { background: #F1F5F9; color: var(--text); }
+
+.topbar h1 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.badge-ig {
+  background: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF);
+  color: #FFF;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: #FFF; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); transform: translateY(-1px); }
+.btn-teal { background: var(--teal); color: #FFF; }
+.btn-teal:hover:not(:disabled) { background: #0F766E; transform: translateY(-1px); }
+.btn-outline { background: #FFF; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover:not(:disabled) { background: #F8FAFC; }
+
+/* Main Container */
+.container {
+  max-width: 1240px;
+  margin: 1.5rem auto;
+  padding: 0 1.25rem;
+}
+
+/* Control Panel */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+.panel-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text);
+}
+
+/* Dropzones */
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dropzone {
+  border: 2px dashed #CBD5E1;
+  border-radius: 14px;
+  padding: 1.35rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #FAFBFD;
+  position: relative;
+}
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--primary);
+  background: #FFF5F2;
+}
+.dropzone.loaded {
+  border-color: var(--teal);
+  border-style: solid;
+  background: #F0FDFA;
+}
+.dropzone input[type="file"] {
+  display: none;
+}
+.dropzone-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+.dropzone-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 0.25rem; }
+.dropzone-sub { font-size: 0.78rem; color: var(--muted); }
+.dropzone-status {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+/* Options Row */
+.options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.opt-group {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.opt-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* Theme Swatches */
+.theme-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.theme-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: #FFF;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.theme-pill.active {
+  border-color: var(--text);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ratio-pills {
+  display: flex;
+  gap: 0.4rem;
+}
+.ratio-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #FFF;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ratio-pill.active {
+  background: var(--text);
+  color: #FFF;
+  border-color: var(--text);
+}
+
+/* Preview Grid */
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.slides-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+.slide-card {
+  background: #FFF;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.2s;
+}
+.slide-card.excluded {
+  opacity: 0.45;
+}
+
+.slide-canvas-wrap {
+  background: #E2E8F0;
+  padding: 0.75rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-in;
+}
+.slide-canvas-wrap img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  display: block;
+}
+
+.slide-footer {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.slide-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.slide-meta input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.btn-sm {
+  font-size: 0.76rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 7px;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  background: #FFF;
+  border: 1px dashed var(--border);
+  border-radius: 16px;
+  color: var(--muted);
+}
+.empty-state .big-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+.empty-state h3 { color: var(--text); margin-bottom: 0.4rem; }
+
+/* Lightbox Modal */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1.5rem;
+}
+.modal-bg.show { display: flex; }
+.modal-content {
+  max-width: 540px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.modal-content img {
+  max-height: 82vh;
+  width: auto;
+  max-width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+}
+.modal-close {
+  background: #FFF;
+  color: var(--text);
+  border: none;
+  padding: 0.45rem 1.2rem;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .upload-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">← 工具中心</a>
+    <h1>IG 懶人包產生器 <span class="badge-ig">Instagram 4:5</span></h1>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-outline" id="demoBtn" onclick="loadDemoData()">✨ 載入範例預覽</button>
+    <button class="btn btn-teal" id="downloadZipBtn" onclick="downloadAllZip()" disabled>📦 一鍵打包下載 (.zip)</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <section class="panel">
+    <div class="panel-title">📂 第一步：放入您完成的 Word 成品（可單獨或同時放入兩份）</div>
+
+    <div class="upload-grid">
+      <label class="dropzone" id="dz-ori">
+        <input type="file" accept=".docx" id="file-ori">
+        <div class="dropzone-icon">📘</div>
+        <div class="dropzone-title">PGY Orientation 手冊 (.docx)</div>
+        <div class="dropzone-sub">點擊選擇或拖曳「PGY老年醫學科 orientation.docx」至此</div>
+        <div class="dropzone-status" id="status-ori"></div>
+      </label>
+
+      <label class="dropzone" id="dz-sch">
+        <input type="file" accept=".docx" id="file-sch">
+        <div class="dropzone-icon">🗓️</div>
+        <div class="dropzone-title">老年醫學科教學活動表 (.docx)</div>
+        <div class="dropzone-sub">點擊選擇或拖曳「老年醫學科教學活動表.docx」至此</div>
+        <div class="dropzone-status" id="status-sch"></div>
+      </label>
+    </div>
+
+    <div class="options-row">
+      <div class="opt-group">
+        <span class="opt-label">🎨 活潑套色：</span>
+        <div class="theme-pills" id="themePills"></div>
+      </div>
+      <div class="opt-group">
+        <span class="opt-label">📐 圖片比例：</span>
+        <div class="ratio-pills">
+          <button class="ratio-pill active" data-ratio="4:5" onclick="setRatio('4:5', this)">4:5 IG 貼文 (1080×1350)</button>
+          <button class="ratio-pill" data-ratio="1:1" onclick="setRatio('1:1', this)">1:1 正方形 (1080×1080)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="previewSection">
+    <div class="empty-state" id="emptyState">
+      <div class="big-icon">📱</div>
+      <h3>尚未載入文件</h3>
+      <p>請將上方產生器輸出的 <code>.docx</code> 檔案拖曳進來，或點選右上角「✨ 載入範例預覽」立即體驗效果。</p>
+    </div>
+
+    <div id="slidesContainer" style="display:none;">
+      <div class="preview-header">
+        <div class="panel-title" style="margin:0;">🖼️ 第二步：預覽懶人包圖片（共 <span id="slideCount">0</span> 張 · 點擊圖片可放大檢查）</div>
+        <div style="font-size:0.82rem;color:var(--muted);">可取消勾選不想匯出的頁面</div>
+      </div>
+      <div class="slides-grid" id="slidesGrid"></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="modal-bg" id="lightbox" onclick="closeLightbox()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <img id="lightboxImg" src="" alt="Preview">
+    <button class="modal-close" onclick="closeLightbox()">關閉預覽</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════
+// 1. 活潑套色主題定義
+// ══════════════════════════════════════════════════════════════════════
+const THEMES = {
+  coral: {
+    name: '活力暖陽',
+    bg: '#FFFBF5',
+    bgAlt: '#FFF2E6',
+    primary: '#FF6B4A',     // 珊瑚橘
+    secondary: '#0D9488',   // 湖水綠
+    accent: '#F59E0B',      // 陽光黃
+    purple: '#7C3AED',      // 點綴紫
+    dark: '#1E293B',
+    muted: '#475569',
+    cardBg: '#FFFFFF',
+    cardBorder: '#FDE2D2',
+    coverGrad: ['#FF6B4A', '#FF8E53'],
+  },
+  mint: {
+    name: '清新薄荷',
+    bg: '#F2FBF8',
+    bgAlt: '#E0F7EF',
+    primary: '#0284C7',     // 晴空藍
+    secondary: '#10B981',   // 薄荷綠
+    accent: '#F97316',      // 活力橘
+    purple: '#6366F1',      // 靛藍
+    dark: '#0F172A',
+    muted: '#475569',
+    cardBg: '#FFFFFF',
+    cardBorder: '#BFEAD9',
+    coverGrad: ['#0284C7', '#10B981'],
+  },
+  berry: {
+    name: '莓果微光',
+    bg: '#FAF7FF',
+    bgAlt: '#F1E8FF',
+    primary: '#7C3AED',     // 鮮明紫
+    secondary: '#EC4899',   // 桃粉色
+    accent: '#F59E0B',      // 金黃
+    purple: '#06B6D4',      // 青藍
+    dark: '#1E1B4B',
+    muted: '#4C1D95',
+    cardBg: '#FFFFFF',
+    cardBorder: '#E4D4FF',
+    coverGrad: ['#7C3AED', '#EC4899'],
+  },
+  skh: {
+    name: '新光亮彩',
+    bg: '#F0F7FF',
+    bgAlt: '#E0EEFF',
+    primary: '#1B5E8A',     // 新光深藍
+    secondary: '#0EA5E9',   // 亮天藍
+    accent: '#F59E0B',      // 暖金
+    purple: '#10B981',      // 翠綠
+    dark: '#0D1B2A',
+    muted: '#475569',
+    cardBg: '#FFFFFF',
+    cardBorder: '#CBE0F5',
+    coverGrad: ['#1B5E8A', '#0EA5E9'],
+  }
+};
+
+let currentThemeKey = 'coral';
+let currentRatio = '4:5'; // '4:5' -> 1080x1350, '1:1' -> 1080x1080
+let state = {
+  orientation: null,
+  schedule: null
+};
+let renderedSlides = []; // { id, title, dataUrl, included }
+
+// 初始化主題按鈕
+(function initThemeUI() {
+  const wrap = document.getElementById('themePills');
+  Object.entries(THEMES).forEach(([key, t]) => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-pill' + (key === currentThemeKey ? ' active' : '');
+    btn.innerHTML = `<span class="swatch" style="background:linear-gradient(135deg,${t.primary},${t.secondary})"></span>${t.name}`;
+    btn.onclick = () => {
+      currentThemeKey = key;
+      document.querySelectorAll('.theme-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      renderAllSlides();
+    };
+    wrap.appendChild(btn);
+  });
+})();
+
+function setRatio(ratio, el) {
+  currentRatio = ratio;
+  document.querySelectorAll('.ratio-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderAllSlides();
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 2. 零相依性純 JS ZIP 讀取器（用於解析 .docx）與寫入器（用於打包下載）
+// ══════════════════════════════════════════════════════════════════════
+async function readDocxXml(arrayBuffer) {
+  const view = new DataView(arrayBuffer);
+  const bytes = new Uint8Array(arrayBuffer);
+  // 尋找 End of Central Directory (0x06054b50)
+  let eocdOffset = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocdOffset = i;
+      break;
+    }
+  }
+  if (eocdOffset === -1) throw new Error('無效的 .docx 檔案（找不到 ZIP 結尾）');
+
+  const cdOffset = view.getUint32(eocdOffset + 16, true);
+  const cdEntries = view.getUint16(eocdOffset + 10, true);
+  const decoder = new TextDecoder('utf-8');
+
+  let pos = cdOffset;
+  for (let i = 0; i < cdEntries; i++) {
+    if (view.getUint32(pos, true) !== 0x02014b50) break;
+    const method = view.getUint16(pos + 10, true);
+    const compSize = view.getUint32(pos + 20, true);
+    const nameLen = view.getUint16(pos + 28, true);
+    const extraLen = view.getUint16(pos + 30, true);
+    const commentLen = view.getUint16(pos + 32, true);
+    const localHeaderOffset = view.getUint32(pos + 42, true);
+    const fileName = decoder.decode(bytes.subarray(pos + 46, pos + 46 + nameLen));
+
+    if (fileName === 'word/document.xml') {
+      const lNameLen = view.getUint16(localHeaderOffset + 26, true);
+      const lExtraLen = view.getUint16(localHeaderOffset + 28, true);
+      const dataStart = localHeaderOffset + 30 + lNameLen + lExtraLen;
+      const compData = bytes.subarray(dataStart, dataStart + compSize);
+
+      if (method === 0) {
+        return decoder.decode(compData);
+      } else if (method === 8) {
+        if (typeof DecompressionStream === 'undefined') {
+          throw new Error('您的瀏覽器版本較舊，請更新 Chrome / Edge 後再試');
+        }
+        const ds = new DecompressionStream('deflate-raw');
+        const writer = ds.writable.getWriter();
+        writer.write(compData);
+        writer.close();
+        const outBuf = await new Response(ds.readable).arrayBuffer();
+        return decoder.decode(outBuf);
+      } else {
+        throw new Error('不支援的壓縮格式：' + method);
+      }
+    }
+    pos += 46 + nameLen + extraLen + commentLen;
+  }
+  throw new Error('在 .docx 中找不到 word/document.xml');
+}
+
+// 零相依性 ZIP 打包器 (STORE 模式，PNG 本身已壓縮)
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function buildZipBlob(files) {
+  // files: [{ name: string, data: Uint8Array }]
+  const enc = new TextEncoder();
+  const localParts = [];
+  const cdParts = [];
+  let offset = 0;
+
+  files.forEach(f => {
+    const nameBytes = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const size = f.data.length;
+
+    const lh = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true); // UTF-8
+    lv.setUint16(8, 0, true); // STORE
+    lv.setUint16(10, 0, true);
+    lv.setUint16(12, 0, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);
+    lv.setUint32(22, size, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    lh.set(nameBytes, 30);
+
+    localParts.push(lh, f.data);
+
+    const cd = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, 0, true);
+    cv.setUint16(14, 0, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, offset, true);
+    cd.set(nameBytes, 46);
+
+    cdParts.push(cd);
+    offset += lh.length + size;
+  });
+
+  const cdSize = cdParts.reduce((s, b) => s + b.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+  ev.setUint16(20, 0, true);
+
+  return new Blob([...localParts, ...cdParts, eocd], { type: 'application/zip' });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 3. Word XML 解析器（支援 Orientation 手冊 & 教學活動表）
+// ══════════════════════════════════════════════════════════════════════
+function parseXmlDoc(xmlStr) {
+  const parser = new DOMParser();
+  return parser.parseFromString(xmlStr, 'application/xml');
+}
+
+function getParaText(pNode) {
+  const texts = pNode.getElementsByTagNameNS('*', 't');
+  let out = '';
+  for (let i = 0; i < texts.length; i++) out += texts[i].textContent;
+  return out.trim();
+}
+
+function getCellParas(tcNode) {
+  const ps = tcNode.getElementsByTagNameNS('*', 'p');
+  const res = [];
+  for (let i = 0; i < ps.length; i++) {
+    const p = ps[i];
+    const text = getParaText(p);
+    if (!text) continue;
+    // 檢查是否有橘色文字 (E97132) 或紅色 (FF0000) 或綠色 (4A7C59)
+    let color = '';
+    const colors = p.getElementsByTagNameNS('*', 'color');
+    for (let c = 0; c < colors.length; c++) {
+      const val = colors[c].getAttribute('w:val') || colors[c].getAttribute('val') || '';
+      if (val && val !== '000000' && val !== 'auto') { color = val.toUpperCase(); break; }
+    }
+    res.push({ text, color });
+  }
+  return res;
+}
+
+function getTableRows(tblNode) {
+  const rows = [];
+  const children = tblNode.childNodes;
+  for (let i = 0; i < children.length; i++) {
+    if (children[i].localName === 'tr') {
+      const cells = [];
+      const trKids = children[i].childNodes;
+      for (let j = 0; j < trKids.length; j++) {
+        if (trKids[j].localName === 'tc') {
+          cells.push(getCellParas(trKids[j]));
+        }
+      }
+      rows.push(cells);
+    }
+  }
+  return rows;
+}
+
+function parseOrientationDocx(xmlStr) {
+  const doc = parseXmlDoc(xmlStr);
+  const body = doc.getElementsByTagNameNS('*', 'body')[0];
+  const allText = [];
+  const ps = body.getElementsByTagNameNS('*', 'p');
+  for (let i = 0; i < ps.length; i++) {
+    const t = getParaText(ps[i]);
+    if (t) allText.push(t);
+  }
+  const full = allText.join('\n');
+
+  // 擷取年月
+  let year = '115', month = '6';
+  const ymMatch = full.match(/(\d{2,3})年\s*(\d{1,2})月/);
+  if (ymMatch) {
+    year = ymMatch[1];
+    month = ymMatch[2];
+  }
+  const hasOutreach = !full.includes('本月無院外訓練');
+
+  // 擷取聯絡人表格
+  const tables = body.getElementsByTagNameNS('*', 'tbl');
+  const contacts = [];
+  for (let t = 0; t < tables.length; t++) {
+    const rows = getTableRows(tables[t]);
+    if (rows.length > 1 && rows[0].length >= 3) {
+      const h0 = (rows[0][0][0]?.text || '');
+      if (h0.includes('身份')) {
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          contacts.push({
+            role: row[0]?.map(x => x.text).join('') || '',
+            name: row[1]?.map(x => x.text).join('') || '',
+            ext:  row[2]?.map(x => x.text).join('') || '',
+            note: row[3]?.map(x => x.text).join('') || '',
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    year,
+    month,
+    hasOutreach,
+    contacts: contacts.length ? contacts : getDefaultOrientation(year, month, hasOutreach).contacts
+  };
+}
+
+function getDefaultOrientation(year = '115', month = '11', hasOutreach = true) {
+  return {
+    year,
+    month,
+    hasOutreach,
+    contacts: [
+      { role: '臨床老師', name: '陳霈容 醫師', ext: '852091', note: '老年醫學科' },
+      { role: '臨床老師', name: '葉鎧境 醫師', ext: '851939', note: '老年醫學科' },
+      { role: '臨床老師', name: '林威佑 醫師', ext: '851880', note: '老年醫學科' },
+      { role: '臨床老師', name: '葉勁甫 醫師', ext: '852112', note: '老年醫學科' },
+      { role: '個管師',   name: '林威翰',     ext: '810906', note: 'PAC（骨折／衰弱高齡）' },
+      { role: '個管師',   name: '陳慧',       ext: '—',      note: 'PAC（中風）' },
+      { role: '專科護理師', name: '郭渝萱',   ext: '810949', note: '紙本作業繳交' },
+      { role: '科助理',   name: '戴翌安',     ext: '810238', note: 'A014833@ms.skh.org.tw' },
+    ]
+  };
+}
+
+function parseScheduleDocx(xmlStr) {
+  const doc = parseXmlDoc(xmlStr);
+  const body = doc.getElementsByTagNameNS('*', 'body')[0];
+  const tables = body.getElementsByTagNameNS('*', 'tbl');
+  if (!tables.length) throw new Error('在教學活動表中找不到表格');
+
+  // Table 0: 月曆
+  const calRows = getTableRows(tables[0]);
+  const titleStr = calRows[0]?.[0]?.[0]?.text || '';
+  let year = '115', month = '10';
+  const ym = titleStr.match(/(\d{2,3})年\s*(\d{1,2})月/);
+  if (ym) { year = ym[1]; month = ym[2]; }
+
+  const weekdays = ['W1', 'W2', 'W3', 'W4', 'W5'];
+  const specialEvents = []; // { date, dow, text, kind: 'orange'|'holiday'|'outreach' }
+
+  // Row 0 = title, Row 1 = day headers, Row 2,3 = week1 dates/content...
+  for (let r = 2; r + 1 < calRows.length; r += 2) {
+    const dateRow = calRows[r];
+    const contentRow = calRows[r + 1];
+    for (let c = 0; c < 5; c++) {
+      const dateTxt = dateRow[c]?.[0]?.text || '';
+      if (!dateTxt) continue;
+      // 檢查是否屬於本月（只抓 month/day 開頭符合本月的日期）
+      const mMatch = dateTxt.match(/^(\d{1,2})\/(\d{1,2})$/);
+      if (mMatch && parseInt(mMatch[1]) !== parseInt(month)) continue;
+
+      const items = contentRow[c] || [];
+      items.forEach(item => {
+        const txt = item.text;
+        if (txt === '假日') {
+          specialEvents.push({ date: dateTxt, dow: weekdays[c], text: '國定／休假日', kind: 'holiday' });
+        } else if (weekdays[c] === 'W1' && txt.includes('13:10') && txt.includes('團隊會議')) {
+          specialEvents.push({ date: dateTxt, dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' });
+        } else if (txt.includes('神放跨科討論會')) {
+          specialEvents.push({ date: dateTxt, dow: weekdays[c], text: txt, kind: 'neuro' });
+        } else if (/journal\s*reading/i.test(txt)) {
+          specialEvents.push({ date: dateTxt, dow: weekdays[c], text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' });
+        }
+      });
+    }
+  }
+
+  // Table 1: 固定每週教學活動參考表
+  const weeklyRef = [];
+  if (tables.length >= 2) {
+    const refRows = getTableRows(tables[1]);
+    let currentWeek = '';
+    for (let r = 1; r < refRows.length; r++) {
+      const cells = refRows[r];
+      // 因為 rowSpan，有些列只有 4 欄，有些有 5 欄
+      let offset = 0;
+      if (cells.length === 5) {
+        currentWeek = cells[0].map(x => x.text).join('');
+        offset = 1;
+      } else {
+        // 檢查第一欄是否為空的 vMerge cell
+        const firstTxt = cells[0]?.map(x => x.text).join('') || '';
+        if (firstTxt && /^W\d/.test(firstTxt)) {
+          currentWeek = firstTxt;
+          offset = 1;
+        } else if (cells.length === 5) {
+          offset = 1;
+        } else {
+          offset = 0;
+        }
+      }
+      if (cells.length >= 4) {
+        const time = cells[offset]?.map(x => x.text).join('') || '';
+        const act  = cells[offset + 1]?.map(x => x.text).join('') || '';
+        const loc  = cells[offset + 2]?.map(x => x.text).join('') || '';
+        const docN = cells[offset + 3]?.map(x => x.text).join('') || '';
+        if (act) weeklyRef.push({ week: currentWeek, time, act, loc, doc: docN });
+      }
+    }
+  }
+
+  // Table 2: 門診教學時段
+  const clinicSessions = [];
+  if (tables.length >= 3) {
+    const cRows = getTableRows(tables[2]);
+    for (let r = 1; r < cRows.length; r++) {
+      const row = cRows[r];
+      if (row.length >= 6) {
+        clinicSessions.push({
+          date: row[0].map(x => x.text).join(''),
+          dow:  row[1].map(x => x.text).join(''),
+          time: row[2].map(x => x.text).join(''),
+          trainee: row[3].map(x => x.text).join(''),
+          loc:  row[4].map(x => x.text).join(''),
+          doc:  row[5].map(x => x.text).join(''),
+        });
+      }
+    }
+  }
+
+  return { year, month, specialEvents, weeklyRef, clinicSessions };
+}
+
+function isStandardFixed(txt) {
+  return txt.includes('晨會 (含個案討論)') ||
+         txt.includes('晨會(含個案討論)') ||
+         txt.includes('神內晨會') ||
+         txt.includes('神內午餐會') ||
+         txt.includes('住院醫師晨會') ||
+         txt.includes('全院晨會');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 4. Canvas 繪圖工具（大字體、高對比、圓角卡片、無雜訊）
+// ══════════════════════════════════════════════════════════════════════
+function createCanvas() {
+  const w = 1080;
+  const h = currentRatio === '4:5' ? 1350 : 1080;
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  return { canvas, ctx: canvas.getContext('2d'), w, h };
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function fillRoundRect(ctx, x, y, w, h, r, fill, stroke, strokeW = 3) {
+  roundRect(ctx, x, y, w, h, r);
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = strokeW; ctx.stroke(); }
+}
+
+function drawBadge(ctx, text, x, y, bg, color, fontSize = 28, padX = 24, padY = 12) {
+  ctx.font = `800 ${fontSize}px "Noto Sans TC", sans-serif`;
+  const tw = ctx.measureText(text).width;
+  const bw = tw + padX * 2;
+  const bh = fontSize + padY * 2;
+  fillRoundRect(ctx, x, y, bw, bh, bh / 2, bg);
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + padX, y + bh / 2 + 2);
+  return { w: bw, h: bh };
+}
+
+function wrapText(ctx, text, maxWidth) {
+  const chars = Array.from(text);
+  const lines = [];
+  let line = '';
+  for (let i = 0; i < chars.length; i++) {
+    const test = line + chars[i];
+    if (ctx.measureText(test).width > maxWidth && line.length > 0) {
+      lines.push(line);
+      line = chars[i];
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, color, font) {
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'top';
+  const lines = wrapText(ctx, text, maxWidth);
+  lines.forEach((l, idx) => {
+    ctx.fillText(l, x, y + idx * lineHeight);
+  });
+  return lines.length * lineHeight;
+}
+
+function drawSlideChrome(ctx, w, h, theme, tagText, slideTitle, pageNum, totalPages) {
+  // 背景
+  ctx.fillStyle = theme.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  // 柔和幾何裝飾圓（不干擾閱讀）
+  ctx.save();
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = theme.primary;
+  ctx.beginPath(); ctx.arc(w - 60, 80, 200, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = theme.secondary;
+  ctx.beginPath(); ctx.arc(80, h - 60, 170, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // 頂部色條
+  ctx.fillStyle = theme.primary;
+  ctx.fillRect(0, 0, w, 16);
+
+  // Header Badge & Page Indicator
+  drawBadge(ctx, tagText, 64, 54, theme.bgAlt, theme.primary, 28, 24, 10);
+
+  ctx.font = '800 28px "Noto Sans TC", sans-serif';
+  ctx.fillStyle = theme.muted;
+  ctx.textBaseline = 'middle';
+  const pStr = `${pageNum} / ${totalPages}`;
+  const pw = ctx.measureText(pStr).width;
+  ctx.fillText(pStr, w - 64 - pw, 80);
+
+  // 大標題
+  ctx.font = '900 58px "Noto Sans TC", sans-serif';
+  ctx.fillStyle = theme.dark;
+  ctx.textBaseline = 'top';
+  ctx.fillText(slideTitle, 64, 134);
+
+  // 標題底線裝飾
+  fillRoundRect(ctx, 64, 212, 120, 10, 5, theme.accent);
+
+  // 底部頁尾
+  ctx.font = '700 24px "Noto Sans TC", sans-serif';
+  ctx.fillStyle = theme.muted;
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('新光醫院 老年醫學科 · PGY Orientation', 64, h - 36);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 5. 各頁懶人包繪製邏輯
+// ══════════════════════════════════════════════════════════════════════
+function buildSlidesList() {
+  const list = [];
+  const t = THEMES[currentThemeKey];
+  const isCompact = currentRatio === '1:1';
+
+  // --- A. Orientation 手冊頁面 ---
+  if (state.orientation) {
+    const ori = state.orientation;
+    list.push({ id: 'ori-cover', title: '封面：PGY 老年醫學科報到', draw: (p, tot) => drawOriCover(ori, t, p, tot) });
+    list.push({ id: 'ori-arch',  title: '訓練架構 & 值班規範',       draw: (p, tot) => drawOriArch(ori, t, p, tot) });
+    list.push({ id: 'ori-tasks', title: '本月必交作業 Checklist',    draw: (p, tot) => drawOriTasks(ori, t, p, tot) });
+    list.push({ id: 'ori-sop',   title: '臨床工作 4 大黃金提醒',     draw: (p, tot) => drawOriSop(ori, t, p, tot) });
+    list.push({ id: 'ori-contacts', title: '重要聯絡人分機速查',     draw: (p, tot) => drawOriContacts(ori, t, p, tot) });
+    list.push({ id: 'ori-stroke-1', title: '腦中風急症處理 (1/2)',     draw: (p, tot) => drawOriStroke1(ori, t, p, tot) });
+    list.push({ id: 'ori-stroke-2', title: '腦中風急症處理 (2/2)',     draw: (p, tot) => drawOriStroke2(ori, t, p, tot) });
+  }
+
+  // --- B. 教學活動表頁面 ---
+  if (state.schedule) {
+    const sch = state.schedule;
+    list.push({ id: 'sch-weekly', title: `${sch.year}年${sch.month}月 每週固定教學`, draw: (p, tot) => drawSchWeekly(sch, t, p, tot) });
+    if (sch.specialEvents.length > 0) {
+      const hasHoliday = sch.specialEvents.some(e => e.kind === 'holiday');
+      const baseTitle = hasHoliday ? '特別活動 & 休假提醒' : '特別活動提醒';
+      // 若特別活動多，分頁顯示保持大字體
+      const perPage = isCompact ? 5 : 7;
+      for (let i = 0; i < sch.specialEvents.length; i += perPage) {
+        const chunk = sch.specialEvents.slice(i, i + perPage);
+        const partIdx = Math.floor(i / perPage) + 1;
+        const partTot = Math.ceil(sch.specialEvents.length / perPage);
+        const suffix = partTot > 1 ? ` (${partIdx}/${partTot})` : '';
+        list.push({
+          id: `sch-special-${partIdx}`,
+          title: `${baseTitle}${suffix}`,
+          draw: (p, tot) => drawSchSpecial(sch, chunk, baseTitle, suffix, t, p, tot)
+        });
+      }
+    }
+    if (sch.clinicSessions.length > 0) {
+      const perPage = isCompact ? 4 : 5;
+      for (let i = 0; i < sch.clinicSessions.length; i += perPage) {
+        const chunk = sch.clinicSessions.slice(i, i + perPage);
+        const partIdx = Math.floor(i / perPage) + 1;
+        const partTot = Math.ceil(sch.clinicSessions.length / perPage);
+        const suffix = partTot > 1 ? ` (${partIdx}/${partTot})` : '';
+        list.push({
+          id: `sch-clinic-${partIdx}`,
+          title: `本月門診教學時段表${suffix}`,
+          draw: (p, tot) => drawSchClinic(sch, chunk, suffix, t, p, tot)
+        });
+      }
+    }
+  }
+  return list;
+}
+
+function drawOriCover(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  // 漸層活潑封面
+  const grad = ctx.createLinearGradient(0, 0, w, h);
+  grad.addColorStop(0, t.coverGrad[0]);
+  grad.addColorStop(1, t.coverGrad[1]);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 背景大圓裝飾
+  ctx.save();
+  ctx.globalAlpha = 0.14;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(w - 100, 140, 260, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(120, h - 180, 220, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // 年月膠囊
+  drawBadge(ctx, `${ori.year}年 ${ori.month}月 · 新光醫院`, 72, 90, 'rgba(255,255,255,0.22)', '#FFFFFF', 34, 30, 14);
+
+  // 主標題
+  ctx.fillStyle = '#FFFFFF';
+  ctx.textBaseline = 'top';
+  ctx.font = '900 84px "Noto Sans TC", sans-serif';
+  ctx.fillText('PGY 老年醫學科', 72, 220);
+
+  ctx.font = '900 96px "Noto Sans TC", sans-serif';
+  ctx.fillStyle = '#FFFBEB';
+  ctx.fillText('Orientation 懶人包', 72, 330);
+
+  // 白色大重點卡
+  const cardY = h === 1350 ? 520 : 475;
+  const cardH = h === 1350 ? 590 : 450;
+  fillRoundRect(ctx, 72, cardY, w - 144, cardH, 36, '#FFFFFF');
+
+  ctx.fillStyle = t.primary;
+  ctx.font = '800 38px "Noto Sans TC", sans-serif';
+  ctx.fillText('👋 歡迎加入老年醫學科！', 116, cardY + 50);
+
+  const bullets = [
+    '🏥 院內：急性病房照護 + 教學門診',
+    ori.hasOutreach ? '🚌 院外：養護機構 & 錸工場參訪' : '📅 本月專注院內訓練（無院外參訪）',
+    '✅ 3 分鐘掌握作業清單、SOP 與分機'
+  ];
+  let by = cardY + 138;
+  const step = h === 1350 ? 130 : 96;
+  bullets.forEach((b, idx) => {
+    fillRoundRect(ctx, 116, by, w - 232, step - 24, 20, idx % 2 === 0 ? t.bgAlt : t.bg);
+    ctx.fillStyle = t.dark;
+    ctx.font = '700 34px "Noto Sans TC", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(b, 146, by + (step - 24) / 2);
+    by += step;
+  });
+
+  // 滑動提示
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = '800 34px "Noto Sans TC", sans-serif';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('往左滑看完整重點 👉', 72, h - 68);
+  const pStr = `${pageNum} / ${totalPages}`;
+  const pw = ctx.measureText(pStr).width;
+  ctx.fillText(pStr, w - 72 - pw, h - 68);
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriArch(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '01 · 訓練架構與作息', '訓練架構 & 值班規範', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 250;
+
+  // Card 1: 院內訓練
+  const c1H = is11 ? 225 : 290;
+  fillRoundRect(ctx, 64, y, w - 128, c1H, 28, t.cardBg, t.cardBorder, 3);
+  drawBadge(ctx, '🏥 院內訓練', 96, y + 28, t.primary, '#FFFFFF', 30, 22, 10);
+  ctx.fillStyle = t.dark;
+  ctx.font = '700 36px "Noto Sans TC", sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('• 急性照護病房：Primary & Combined care', 96, y + (is11 ? 102 : 115));
+  ctx.fillText('• 老年醫學科門診：教學門診（至少 2 次）', 96, y + (is11 ? 156 : 185));
+  y += c1H + (is11 ? 24 : 32);
+
+  // Card 2: 院外訓練
+  const c2H = is11 ? 200 : 270;
+  fillRoundRect(ctx, 64, y, w - 128, c2H, 28, t.cardBg, t.cardBorder, 3);
+  drawBadge(ctx, '🚌 院外訓練', 96, y + 28, t.secondary, '#FFFFFF', 30, 22, 10);
+  ctx.fillStyle = t.dark;
+  ctx.font = '700 36px "Noto Sans TC", sans-serif';
+  if (ori.hasOutreach) {
+    ctx.fillText('• 養護機構參訪：長照體系實務運作', 96, y + (is11 ? 100 : 115));
+    ctx.fillText('• 錸工場參訪（僅 1 位）：前往者才需備 30 分鐘衛教簡報', 96, y + (is11 ? 150 : 185));
+  } else {
+    ctx.fillStyle = t.muted;
+    ctx.fillText('本月無院外訓練，專注於院內病房與門診！', 96, y + (is11 ? 115 : 140));
+  }
+  y += c2H + (is11 ? 24 : 32);
+
+  // Card 3: 上班與值班規範
+  const c3H = h - y - 90;
+  fillRoundRect(ctx, 64, y, w - 128, c3H, 28, t.bgAlt, t.accent, 3);
+  drawBadge(ctx, '⏰ 作息與值班', 96, y + 26, t.accent, '#FFFFFF', 30, 22, 10);
+  ctx.fillStyle = t.dark;
+  ctx.font = '800 35px "Noto Sans TC", sans-serif';
+  const gap = is11 ? 52 : 66;
+  const startY = y + (is11 ? 94 : 108);
+  ctx.fillText('☀️ 上班 07:30 ｜ 接新病人至 16:30 ｜ 交班 17:00', 96, startY);
+  ctx.fillText('🌙 值班上限：每月原則 6 班（復健＋老醫共同值班）', 96, startY + gap);
+  if (!is11) {
+    ctx.font = '700 32px "Noto Sans TC", sans-serif';
+    ctx.fillStyle = t.muted;
+    ctx.fillText('⚠️ 病情不穩、家屬要求解釋或處置疑慮請立即通知主治醫師', 96, startY + gap * 2);
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriTasks(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '02 · 完訓必看', '本月必交作業 Checklist', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  // 頂部繳交提醒條
+  fillRoundRect(ctx, 64, 244, w - 128, is11 ? 105 : 122, 22, t.bgAlt, t.accent, 3);
+  ctx.fillStyle = t.dark;
+  ctx.font = '800 31px "Noto Sans TC", sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('📌 紙本繳交：郭渝萱 專科護理師 ／ 林威翰 個管師', 92, 262);
+  ctx.font = '700 28px "Noto Sans TC", sans-serif';
+  ctx.fillStyle = t.muted;
+  ctx.fillText('☁️ 電子檔：OneDrive 資料夾（見 Line 群組記事本）', 92, is11 ? 306 : 314);
+
+  const tasks = [
+    { tag: '口頭', color: t.primary,   text: 'CGA 周全性評估報告 × 2 次（於團隊會議簡報）' },
+    { tag: '口頭', color: t.primary,   text: ori.hasOutreach ? '期刊研讀 20 分鐘（僅參訪錸工場者免）' : '期刊研讀（含簡報，每人約 20 分鐘）' },
+    { tag: '紀錄', color: t.secondary, text: '晨會記錄 ＋ 教學住診記錄單（至少 4 份）' },
+    { tag: '紀錄', color: t.secondary, text: '教學門診記錄單（4–6 份）＋ 學習護照' },
+    { tag: '評量', color: t.purple,    text: '360 度評量（至少完成 1 次）' },
+  ];
+  if (ori.hasOutreach) {
+    tasks.push({ tag: '院外', color: t.accent, text: '院外心得報告 ＋ 錸工場衛教簡報（僅前往該 1 位製作）' });
+  }
+
+  let y = is11 ? 368 : 390;
+  const rowH = is11 ? 94 : (ori.hasOutreach ? 124 : 148);
+  const gap = is11 ? 14 : 20;
+
+  tasks.forEach(item => {
+    fillRoundRect(ctx, 64, y, w - 128, rowH, 20, t.cardBg, t.cardBorder, 2);
+    drawBadge(ctx, item.tag, 88, y + (rowH - 48) / 2, item.color, '#FFFFFF', 26, 20, 10);
+    ctx.fillStyle = t.dark;
+    ctx.font = `700 ${is11 ? 31 : 34}px "Noto Sans TC", sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.text, 210, y + rowH / 2 + 2);
+    y += rowH + gap;
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriSop(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '03 · 臨床工作提醒', '4 大臨床 SOP 快速記憶', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  const cards = [
+    {
+      badge: '📋 收案會診',
+      color: t.primary,
+      lines: [
+        '會診單註明「老醫會診」；社工勾「特殊個案 → 其他」',
+        '若復健科曾會診，聯絡劉芯妤醫師 (851527) 調整排程'
+      ]
+    },
+    {
+      badge: '☀️ 陽光復能專案',
+      color: t.accent,
+      lines: [
+        '時間：每週二、四 15:00–16:00（選定病人後依序執行）',
+        '開 Order：Other 文字醫囑 → 7K 老醫陽光復能專案 15:00–16:00',
+        '寫紀錄：Other Note → 參與 7K 老醫陽光復能專案 15:00–16:00'
+      ]
+    },
+    {
+      badge: '🏥 出院轉機構',
+      color: t.secondary,
+      lines: [
+        '出院須再附最新病摘（含機構要求報告）與更新用藥',
+        '若需 COVID 快篩請「上午」先做（救護車約 10–11 點接）'
+      ]
+    },
+    {
+      badge: '📁 CGA 電子檔命名',
+      color: t.purple,
+      lines: [
+        '格式：評估日期－病人姓名－病歷號（上傳簡報資料夾）',
+        '範例：20251218 王大明 12345678'
+      ]
+    }
+  ];
+
+  let y = 248;
+  const gap = is11 ? 16 : 22;
+
+  cards.forEach(c => {
+    const isThree = c.lines.length >= 3;
+    const cardH = is11 ? (isThree ? 204 : 156) : (isThree ? 270 : 216);
+    fillRoundRect(ctx, 64, y, w - 128, cardH, 24, t.cardBg, t.cardBorder, 3);
+    // 左側色條
+    fillRoundRect(ctx, 64, y, 16, cardH, 8, c.color);
+    drawBadge(ctx, c.badge, 104, y + (is11 ? 16 : 22), c.color, '#FFFFFF', 28, 20, 8);
+
+    ctx.textBaseline = 'top';
+    let ly = y + (is11 ? 70 : 88);
+    const lineStep = is11 ? 40 : 52;
+    c.lines.forEach((line, idx) => {
+      ctx.fillStyle = idx === 0 ? t.dark : (isThree ? t.dark : t.muted);
+      ctx.font = `${idx === 0 || isThree ? 700 : 700} ${is11 ? (isThree ? 25 : 28) : (isThree ? 28 : 31)}px "Noto Sans TC", sans-serif`;
+      ctx.fillText(line, 104, ly);
+      ly += lineStep;
+    });
+    y += cardH + gap;
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriContacts(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '04 · 截圖保存', '重要聯絡人 & 分機速查', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  const docs = ori.contacts.filter(c => c.role.includes('老師') || c.role.includes('醫師'));
+  const staff = ori.contacts.filter(c => !c.role.includes('老師') && !c.role.includes('醫師'));
+
+  let y = 248;
+  // 醫師群 2x2 格子
+  ctx.fillStyle = t.primary;
+  ctx.font = '800 32px "Noto Sans TC", sans-serif';
+  ctx.textBaseline = 'top';
+  ctx.fillText('👨‍⚕️ 老年醫學科 臨床老師', 64, y);
+  y += 48;
+
+  const boxW = (w - 128 - 24) / 2;
+  const boxH = is11 ? 120 : 148;
+  docs.slice(0, 4).forEach((d, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    const bx = 64 + col * (boxW + 24);
+    const by = y + row * (boxH + 18);
+    fillRoundRect(ctx, bx, by, boxW, boxH, 22, t.cardBg, t.cardBorder, 3);
+    ctx.fillStyle = t.dark;
+    ctx.font = '800 36px "Noto Sans TC", sans-serif';
+    ctx.fillText(d.name, bx + 28, by + (is11 ? 20 : 28));
+    ctx.fillStyle = t.primary;
+    ctx.font = '900 38px "Noto Sans TC", sans-serif';
+    ctx.fillText('📞 ' + d.ext, bx + 28, by + (is11 ? 68 : 82));
+  });
+
+  y += Math.ceil(docs.slice(0, 4).length / 2) * (boxH + 18) + (is11 ? 16 : 28);
+
+  // 團隊夥伴
+  ctx.fillStyle = t.secondary;
+  ctx.font = '800 32px "Noto Sans TC", sans-serif';
+  ctx.fillText('🤝 專科護理師 ／ 個管師 ／ 科助理', 64, y);
+  y += 48;
+
+  const rowH = is11 ? 76 : 96;
+  staff.slice(0, 4).forEach(s => {
+    fillRoundRect(ctx, 64, y, w - 128, rowH, 18, t.cardBg, t.cardBorder, 2);
+    drawBadge(ctx, s.role, 84, y + (rowH - 44) / 2, t.bgAlt, t.secondary, 24, 16, 8);
+    ctx.fillStyle = t.dark;
+    ctx.font = '800 34px "Noto Sans TC", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(s.name, 260, y + rowH / 2 + 2);
+
+    ctx.fillStyle = t.primary;
+    ctx.font = '800 32px "Noto Sans TC", sans-serif';
+    ctx.fillText(s.ext !== '—' ? `分機 ${s.ext}` : '院內連絡', 430, y + rowH / 2 + 2);
+
+    ctx.fillStyle = t.muted;
+    ctx.font = '700 24px "Noto Sans TC", sans-serif';
+    ctx.fillText(s.note, 640, y + rowH / 2 + 2);
+    y += rowH + (is11 ? 12 : 16);
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriStroke1(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '05 · 急症必備 (1/2)', '腦中風急症辨別 & 求助', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 240;
+
+  // 醫囑組套提示
+  fillRoundRect(ctx, 64, y, w - 128, is11 ? 56 : 64, 14, '#FEF2F2', '#FCA5A5', 2);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `800 ${is11 ? 25 : 27}px "Noto Sans TC", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText('💡 初期可先參考急診神經科會診單開立醫囑（全院組套 → 神經科）', 88, y + (is11 ? 28 : 32));
+  y += (is11 ? 70 : 82);
+
+  // 1. Time is money!
+  const c1H = is11 ? 156 : 190;
+  fillRoundRect(ctx, 64, y, w - 128, c1H, 22, '#FEF2F2', '#FCA5A5', 3);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `900 ${is11 ? 32 : 36}px "Noto Sans TC", sans-serif`;
+  ctx.textBaseline = 'top';
+  ctx.fillText('⏱️ Time is money!', 92, y + 18);
+  ctx.fillStyle = t.dark;
+  ctx.font = `700 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 發作 or 距離最後正常 4.5 小時內 → 血栓溶解劑 (rt-PA)', 92, y + (is11 ? 66 : 76));
+  ctx.fillText('• 發作 or 距離最後正常 24 小時內且大血管阻塞 → 動脈取栓 (EVT)', 92, y + (is11 ? 106 : 126));
+  y += c1H + (is11 ? 16 : 22);
+
+  // 2. 強烈懷疑大血管阻塞
+  const c2H = is11 ? 228 : 284;
+  fillRoundRect(ctx, 64, y, w - 128, c2H, 22, t.cardBg, t.cardBorder, 3);
+  drawBadge(ctx, '🚨 強烈懷疑大血管阻塞（以下一至多項症狀，不限於此）', 92, y + 18, '#DC2626', '#FFFFFF', is11 ? 23 : 26, 18, 8);
+  ctx.textBaseline = 'top';
+  let sy = y + (is11 ? 74 : 88);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `800 ${is11 ? 24 : 28}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('▸ 像大片腦半球中風：', 92, sy);
+  ctx.fillStyle = t.dark;
+  ctx.font = `700 ${is11 ? 24 : 28}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('   意識改變、雙眼偏一邊、單側偏癱、失語症', 92, sy + (is11 ? 32 : 38));
+
+  sy += (is11 ? 74 : 90);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `800 ${is11 ? 24 : 28}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('▸ 像腦幹中風：', 92, sy);
+  ctx.fillStyle = t.dark;
+  ctx.font = `700 ${is11 ? 23 : 27}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('   意識改變、雙眼偏一邊/脫窗、面癱、臉麻、嗆咳、口齒不清、舌頭偏', 92, sy + (is11 ? 32 : 38));
+  y += c2H + (is11 ? 16 : 22);
+
+  // 3. 立即聯絡神經科二線
+  const c3H = h - y - 82;
+  fillRoundRect(ctx, 64, y, w - 128, c3H, 22, t.bgAlt, t.primary, 3);
+  drawBadge(ctx, '📞 立即聯絡神經科二線 & 緊急檢驗檢查', 92, y + 18, t.primary, '#FFFFFF', is11 ? 24 : 27, 18, 8);
+  let ly = y + (is11 ? 74 : 88);
+  const lGap = is11 ? 52 : 66;
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = t.dark;
+  ctx.font = `700 ${is11 ? 23 : 27}px "Noto Sans TC", sans-serif`;
+  drawWrappedText(ctx, '• 準備資訊：發作時間 or 最後正常時間、病史、V/S、F/S、是否服用抗凝血劑', 92, ly, w - 184, is11 ? 30 : 34, t.dark, `700 ${is11 ? 23 : 27}px "Noto Sans TC", sans-serif`);
+  ly += (is11 ? 66 : 78);
+  drawWrappedText(ctx, '• 緊急檢驗：Hemogram、PT/APTT、biochemistry、troponin、glucose', 92, ly, w - 184, is11 ? 30 : 34, t.dark, `700 ${is11 ? 23 : 27}px "Noto Sans TC", sans-serif`);
+  ly += (is11 ? 64 : 76);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `800 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 緊急檢查：Brain NCCT + CTA + CTP', 92, ly);
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOriStroke2(ori, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, '06 · 急症必備 (2/2)', '中風惡化處理 & 危險因子調控', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 244;
+
+  // 1. 如何處理中風症狀惡化
+  const c1H = is11 ? 305 : 395;
+  fillRoundRect(ctx, 64, y, w - 128, c1H, 24, t.cardBg, t.cardBorder, 3);
+  drawBadge(ctx, '⚠️ 如何處理中風症狀惡化', 92, y + 22, '#DC2626', '#FFFFFF', 28, 22, 10);
+
+  let ay = y + (is11 ? 90 : 104);
+  ctx.textBaseline = 'top';
+  const f1 = `700 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
+  const h1 = drawWrappedText(ctx, '• 可能原因：原中風惡化、轉出血、新中風、Stroke mimics（感染、休克、脫水、低血糖、電解質、中風後癲癇…）', 92, ay, w - 184, is11 ? 38 : 44, t.dark, f1);
+  ay += h1 + (is11 ? 16 : 24);
+  const h2 = drawWrappedText(ctx, '• 緊急檢驗：Hemogram、biochemistry、troponin、glucose、infection profile', 92, ay, w - 184, is11 ? 38 : 44, t.dark, f1);
+  ay += h2 + (is11 ? 16 : 24);
+  ctx.fillStyle = '#DC2626';
+  ctx.font = `800 ${is11 ? 28 : 32}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 緊急檢查：Brain NCCT (+ CTA + CTP)', 92, ay);
+  y += c1H + (is11 ? 22 : 30);
+
+  // 2. 危險因子與調控
+  const c2H = h - y - 88;
+  fillRoundRect(ctx, 64, y, w - 128, c2H, 24, t.bgAlt, t.primary, 3);
+  drawBadge(ctx, '💊 危險因子與調控目標', 92, y + 22, t.primary, '#FFFFFF', 28, 22, 10);
+
+  let by = y + (is11 ? 92 : 108);
+  const bGap = is11 ? 56 : 74;
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = t.dark;
+  ctx.font = `800 ${is11 ? 28 : 32}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 血壓：< 220/120 ｜ rt-PA < 180/105 ｜ EVT < 160/90', 92, by);
+  by += bGap;
+  ctx.fillStyle = '#DC2626';
+  ctx.fillText('• 慢性期血壓：< 130/80 ｜ 緊急降壓首選：Labetalol', 92, by);
+  by += bGap;
+  ctx.fillStyle = t.dark;
+  ctx.fillText('• 血糖：< 180 ｜ 血脂：< 70', 92, by);
+  by += bGap;
+  ctx.fillText('• 心房顫動：Anticoagulant + rate control', 92, by);
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawSchWeekly(sch, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, `${sch.year}年${sch.month}月 教學活動`, '每週固定教學行程一覽', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  // 將 W1..W5 分組為 5 張大卡片
+  const weekOrder = ['W1', 'W2', 'W3', 'W4', 'W5'];
+  const grouped = {};
+  weekOrder.forEach(k => grouped[k] = []);
+  sch.weeklyRef.forEach(item => {
+    if (grouped[item.week]) grouped[item.week].push(item);
+  });
+
+  // 找出週一 13:10 團隊會議日期
+  const mon1310Dates = (sch.specialEvents || [])
+    .filter(e => e.kind === 'mon1310' || (e.dow === 'W1' && e.text.includes('13:10')))
+    .map(e => e.date);
+
+  // 合併 W4/W5 晨會提示在底部
+  let y = 244;
+  const cardH = is11 ? 132 : 178;
+  const gap = is11 ? 14 : 20;
+  const dayNames = { W1: '週一 W1', W2: '週二 W2', W3: '週三 W3', W4: '週四 W4', W5: '週五 W5' };
+  const dayColors = { W1: t.primary, W2: t.secondary, W3: t.purple, W4: t.accent, W5: '#EC4899' };
+
+  weekOrder.forEach(wk => {
+    const items = grouped[wk];
+    fillRoundRect(ctx, 64, y, w - 128, cardH, 22, t.cardBg, t.cardBorder, 3);
+    // 左側星期色塊
+    fillRoundRect(ctx, 64, y, 175, cardH, 22, dayColors[wk]);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 36px "Noto Sans TC", sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(dayNames[wk], 84, y + cardH / 2);
+
+    // 活動內容
+    ctx.textBaseline = 'top';
+    if (wk === 'W1') {
+      const topPad = is11 ? 16 : 24;
+      const lineStep = is11 ? 38 : 48;
+      ctx.fillStyle = t.dark;
+      ctx.font = `800 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
+      ctx.fillText('住診教學、個案討論（會再由 VS 安排時間）', 265, y + topPad);
+
+      ctx.font = `700 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`;
+      ctx.fillText('12:10 跨團隊會議（7K討論室）', 265, y + topPad + lineStep);
+
+      if (mon1310Dates.length > 0) {
+        ctx.fillStyle = t.primary;
+        ctx.font = `800 ${is11 ? 24 : 28}px "Noto Sans TC", sans-serif`;
+        ctx.fillText(`⭐ ${mon1310Dates.join('、')} 跨團隊會議改為 13:10 召開`, 265, y + topPad + lineStep * 2);
+      }
+    } else if (items.length === 1) {
+      const it = items[0];
+      ctx.fillStyle = t.dark;
+      ctx.font = `800 ${is11 ? 32 : 36}px "Noto Sans TC", sans-serif`;
+      ctx.fillText(`${it.time}  ${it.act}`, 265, y + (is11 ? 24 : 38));
+      ctx.fillStyle = t.muted;
+      ctx.font = `700 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
+      ctx.fillText(`📍 ${it.loc}${it.doc ? ' · ' + it.doc : ''}`, 265, y + (is11 ? 74 : 98));
+    } else if (items.length > 1) {
+      let iy = y + (is11 ? 14 : 22);
+      const step = is11 ? 38 : (items.length === 2 ? 64 : 46);
+      items.slice(0, 3).forEach(it => {
+        ctx.fillStyle = t.dark;
+        ctx.font = `700 ${is11 ? 25 : (items.length === 2 ? 32 : 28)}px "Noto Sans TC", sans-serif`;
+        ctx.fillText(`${it.time} ${it.act}（${it.loc}）`, 265, iy);
+        iy += step;
+      });
+    }
+    y += cardH + gap;
+  });
+
+  if (!is11) {
+    ctx.fillStyle = t.muted;
+    ctx.font = '700 28px "Noto Sans TC", sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.fillText('💡 週四、週五 07:30 另有住院醫師晨會／全院晨會（友誼大樓會議室）', 64, y + 6);
+  }
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawSchSpecial(sch, events, baseTitle, suffix, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, `${sch.year}年${sch.month}月 重點異動`, `${baseTitle}${suffix}`, pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 250;
+  const maxRows = events.length;
+  const availH = h - y - 95;
+  const gap = 18;
+  const rowH = Math.min(is11 ? 128 : 144, Math.floor((availH - gap * (maxRows - 1)) / maxRows));
+  const dayColors = { W1: t.primary, W2: t.secondary, W3: t.purple, W4: t.accent, W5: '#EC4899' };
+
+  events.forEach(ev => {
+    const isHol = ev.kind === 'holiday';
+    const badgeBg = dayColors[ev.dow] || t.primary;
+    const cardBg = isHol ? '#F8FAFC' : t.cardBg;
+
+    fillRoundRect(ctx, 64, y, w - 128, rowH, 22, cardBg, t.cardBorder, 3);
+    drawBadge(ctx, `${ev.date} (${ev.dow})`, 88, y + (rowH - 54) / 2, badgeBg, '#FFFFFF', 28, 22, 12);
+
+    ctx.fillStyle = t.dark;
+    ctx.font = `800 ${is11 ? 30 : 34}px "Noto Sans TC", sans-serif`;
+    ctx.textBaseline = 'middle';
+    // 若文字較長自動換行或微調
+    const maxW = w - 128 - 270;
+    const lines = wrapText(ctx, ev.text, maxW);
+    if (lines.length === 1) {
+      ctx.fillText(lines[0], 310, y + rowH / 2 + 2);
+    } else {
+      ctx.textBaseline = 'top';
+      const lh = 38;
+      const topY = y + (rowH - lines.slice(0, 2).length * lh) / 2;
+      lines.slice(0, 2).forEach((l, li) => ctx.fillText(l, 310, topY + li * lh));
+    }
+    y += rowH + gap;
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawSchClinic(sch, sessions, suffix, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  drawSlideChrome(ctx, w, h, t, `${sch.year}年${sch.month}月 門診教學`, `門診教學時段表${suffix}`, pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 250;
+  const availH = h - y - 95;
+  const gap = is11 ? 18 : 24;
+  const rowH = Math.min(is11 ? 168 : 184, Math.floor((availH - gap * (sessions.length - 1)) / sessions.length));
+
+  sessions.forEach(s => {
+    fillRoundRect(ctx, 64, y, w - 128, rowH, 24, t.cardBg, t.cardBorder, 3);
+    // 左側日期時間方塊
+    fillRoundRect(ctx, 64, y, 220, rowH, 24, t.secondary);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'top';
+    ctx.font = '900 40px "Noto Sans TC", sans-serif';
+    ctx.fillText(s.date, 92, y + (rowH - 92) / 2);
+    ctx.font = '700 28px "Noto Sans TC", sans-serif';
+    ctx.fillText(`${s.dow} · ${s.time}`, 92, y + (rowH - 92) / 2 + 52);
+
+    // 學員姓名（超大字體！）
+    ctx.fillStyle = t.primary;
+    ctx.font = '900 44px "Noto Sans TC", sans-serif';
+    ctx.fillText(`👤 ${s.trainee || '未指定學員'}`, 312, y + (is11 ? 24 : 30));
+
+    // 地點與老師
+    ctx.fillStyle = t.dark;
+    ctx.font = '700 30px "Noto Sans TC", sans-serif';
+    ctx.fillText(`📍 ${s.loc}`, 312, y + (is11 ? 82 : 94));
+    ctx.fillStyle = t.muted;
+    ctx.font = '700 28px "Noto Sans TC", sans-serif';
+    ctx.fillText(`👨‍🏫 指導：${s.doc}`, 312, y + (is11 ? 122 : 136));
+
+    y += rowH + gap;
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 6. 渲染與匯出控制
+// ══════════════════════════════════════════════════════════════════════
+function renderAllSlides() {
+  const slides = buildSlidesList();
+  const emptyEl = document.getElementById('emptyState');
+  const contEl  = document.getElementById('slidesContainer');
+  const gridEl  = document.getElementById('slidesGrid');
+  const zipBtn  = document.getElementById('downloadZipBtn');
+
+  if (slides.length === 0) {
+    emptyEl.style.display = 'block';
+    contEl.style.display = 'none';
+    zipBtn.disabled = true;
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  contEl.style.display = 'block';
+  zipBtn.disabled = false;
+  document.getElementById('slideCount').textContent = slides.length;
+
+  // 保留先前的勾選狀態
+  const prevIncluded = {};
+  renderedSlides.forEach(s => prevIncluded[s.id] = s.included);
+
+  renderedSlides = slides.map((s, idx) => {
+    const dataUrl = s.draw(idx + 1, slides.length);
+    return {
+      id: s.id,
+      index: idx + 1,
+      title: s.title,
+      dataUrl,
+      included: prevIncluded[s.id] !== undefined ? prevIncluded[s.id] : true
+    };
+  });
+
+  gridEl.innerHTML = '';
+  renderedSlides.forEach((s, idx) => {
+    const card = document.createElement('div');
+    card.className = 'slide-card' + (s.included ? '' : ' excluded');
+    card.innerHTML = `
+      <div class="slide-canvas-wrap" onclick="openLightbox('${s.dataUrl}')">
+        <img src="${s.dataUrl}" alt="${s.title}">
+      </div>
+      <div class="slide-footer">
+        <label class="slide-meta">
+          <input type="checkbox" ${s.included ? 'checked' : ''} onchange="toggleSlide(${idx}, this.checked, this)">
+          <span>P${s.index} · ${s.title}</span>
+        </label>
+        <button class="btn btn-outline btn-sm" onclick="downloadSingle(${idx})">⬇️ 下載</button>
+      </div>
+    `;
+    gridEl.appendChild(card);
+  });
+}
+
+function toggleSlide(idx, checked, checkbox) {
+  renderedSlides[idx].included = checked;
+  checkbox.closest('.slide-card').classList.toggle('excluded', !checked);
+}
+
+function downloadSingle(idx) {
+  const s = renderedSlides[idx];
+  const a = document.createElement('a');
+  a.href = s.dataUrl;
+  a.download = `IG_懶人包_${String(s.index).padStart(2, '0')}_${s.title.replace(/[\\/:*?"<>|]/g, '')}.png`;
+  a.click();
+}
+
+function dataUrlToUint8Array(dataUrl) {
+  const base64 = dataUrl.split(',')[1];
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+function downloadAllZip() {
+  const selected = renderedSlides.filter(s => s.included);
+  if (!selected.length) { alert('請至少勾選一張圖片'); return; }
+  const files = selected.map(s => ({
+    name: `IG_懶人包_${String(s.index).padStart(2, '0')}_${s.title.replace(/[\\/:*?"<>|]/g, '')}.png`,
+    data: dataUrlToUint8Array(s.dataUrl)
+  }));
+  const zipBlob = buildZipBlob(files);
+  const url = URL.createObjectURL(zipBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '老年醫學科_IG懶人包圖片.zip';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function openLightbox(src) {
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// 7. 檔案上傳 & 拖曳 & 跨工具自動串接
+// ══════════════════════════════════════════════════════════════════════
+async function handleFile(file, type) {
+  if (!file || !file.name.endsWith('.docx')) {
+    alert('請上傳 .docx 格式的 Word 檔案');
+    return;
+  }
+  try {
+    const buf = await file.arrayBuffer();
+    const xml = await readDocxXml(buf);
+    if (type === 'ori') {
+      state.orientation = parseOrientationDocx(xml);
+      document.getElementById('dz-ori').classList.add('loaded');
+      document.getElementById('status-ori').textContent = `✓ 已載入 ${state.orientation.year}年${state.orientation.month}月 Orientation（${state.orientation.hasOutreach ? '含院外訓練' : '無院外訓練'}）`;
+    } else {
+      state.schedule = parseScheduleDocx(xml);
+      document.getElementById('dz-sch').classList.add('loaded');
+      document.getElementById('status-sch').textContent = `✓ 已載入 ${state.schedule.year}年${state.schedule.month}月 活動表（${state.schedule.specialEvents.length} 項特別活動 · ${state.schedule.clinicSessions.length} 場門診教學）`;
+    }
+    renderAllSlides();
+  } catch (err) {
+    alert('解析檔案失敗：' + err.message);
+    console.error(err);
+  }
+}
+
+function bindDropzone(dzId, inputId, type) {
+  const dz = document.getElementById(dzId);
+  const inp = document.getElementById(inputId);
+  inp.addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0], type);
+    e.target.value = '';
+  });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0], type);
+  });
+}
+
+bindDropzone('dz-ori', 'file-ori', 'ori');
+bindDropzone('dz-sch', 'file-sch', 'sch');
+
+// 範例資料載入
+function loadDemoData() {
+  state.orientation = getDefaultOrientation('115', '11', true);
+  state.schedule = {
+    year: '115',
+    month: '10',
+    specialEvents: [
+      { date: '10/9',  dow: 'W5', text: '國定／休假日', kind: 'holiday' },
+      { date: '10/14', dow: 'W3', text: '15:30 神放跨科討論會', kind: 'neuro' },
+      { date: '10/19', dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' },
+      { date: '10/20', dow: 'W2', text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' }
+    ],
+    weeklyRef: [
+      { week: 'W1', time: '09:00', act: '住診教學、個案討論', loc: '7K討論室/病房', doc: '葉鎧境、陳霈容、葉勁甫醫師' },
+      { week: 'W1', time: '12:10', act: '跨團隊會議', loc: '7K討論室', doc: '' },
+      { week: 'W2', time: '09:00', act: '晨會、個案討論、Journal Reading', loc: '7K討論室', doc: '林威佑醫師' },
+      { week: 'W3', time: '07:30', act: '神內晨會／12:30神內午餐會', loc: '友誼大樓', doc: '連立明主任' },
+      { week: 'W4', time: '08:30', act: '門診教學', loc: 'B1門診146診(家醫科診區)', doc: '林威佑醫師' },
+      { week: 'W5', time: '14:00', act: '門診教學', loc: 'B2門診188診(神經科診區)', doc: '葉鎧境醫師' }
+    ],
+    clinicSessions: [
+      { date: '10/8',  dow: 'W4', time: '08:30', trainee: '李宣諠', loc: 'B1門診146診(家醫科診區)', doc: '林威佑醫師' },
+      { date: '10/15', dow: 'W4', time: '08:30', trainee: '沈弘祥', loc: 'B1門診146診(家醫科診區)', doc: '林威佑醫師' },
+      { date: '10/16', dow: 'W5', time: '14:00', trainee: '郭彥希', loc: 'B2門診188診(神經科診區)', doc: '葉鎧境醫師' },
+      { date: '10/23', dow: 'W5', time: '14:00', trainee: '李宣諠', loc: 'B2門診188診(神經科診區)', doc: '葉鎧境醫師' }
+    ]
+  };
+  document.getElementById('dz-ori').classList.add('loaded');
+  document.getElementById('status-ori').textContent = '✓ 範例：115年11月 Orientation 手冊';
+  document.getElementById('dz-sch').classList.add('loaded');
+  document.getElementById('status-sch').textContent = '✓ 範例：115年10月 教學活動表';
+  renderAllSlides();
+}
+
+// 接收來自 orientation_產生器.html 或 老年醫學科教學活動表產生器.html 的即時資料
+(function checkBridgeData() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get('from');
+  if (from === 'orientation' || !from) {
+    try {
+      const raw = localStorage.getItem('geripgy_ig_bridge_orientation');
+      if (raw && from === 'orientation') {
+        const d = JSON.parse(raw);
+        state.orientation = getDefaultOrientation(d.year, d.month, d.hasOutreach);
+        document.getElementById('dz-ori').classList.add('loaded');
+        document.getElementById('status-ori').textContent = `✓ 已自動匯入 ${d.year}年${d.month}月 Orientation`;
+      }
+    } catch (e) {}
+  }
+  if (from === 'schedule' || !from) {
+    try {
+      const raw = localStorage.getItem('geripgy_ig_bridge_schedule');
+      if (raw && from === 'schedule') {
+        const d = JSON.parse(raw);
+        state.schedule = d;
+        document.getElementById('dz-sch').classList.add('loaded');
+        document.getElementById('status-sch').textContent = `✓ 已自動匯入 ${d.year}年${d.month}月 教學活動表`;
+      }
+    } catch (e) {}
+  }
+  if (state.orientation || state.schedule) {
+    renderAllSlides();
+  }
+})();
+</script>
+</body>
+</html>

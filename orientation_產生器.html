@@ -332,6 +332,11 @@
       產生並下載文件
     </button>
 
+    <button class="btn" id="ig-btn" onclick="openIGGenerator()" style="margin-top: 0.65rem; background: linear-gradient(135deg, #FF6B4A, #EC4899);">
+      <span class="btn-icon">📱</span>
+      轉換成 IG 懶人包圖片
+    </button>
+
     <div class="status" id="status">
       <div class="spinner"></div>
       <span id="status-text">產生中，請稍候…</span>
@@ -23687,8 +23692,8 @@ const doc = new Document({
             makeCell(HAS_OUTREACH ? [
               cellP("● 養護機構參訪", { bold: true }),
               cellP("　了解長期照護體系實務運作"),
-              cellP("● 錸工廠參訪（部分學員）", { bold: true }),
-              cellP("　需準備30分鐘長者衛教簡報"),
+              cellP("● 錸工場參訪（僅 1 位學員）", { bold: true }),
+              cellP("　僅前往錸工場之學員需準備30分鐘長者衛教簡報"),
             ] : [
               cellP("本月無院外訓練", { color: C.midGray }),
             ], { w: PW / 2 }),
@@ -23731,7 +23736,7 @@ const doc = new Document({
             }),
             makeCell([cellP([
               run("期刊研讀", { bold: true }),
-              run(HAS_OUTREACH ? "　含簡報製作，每人約 20 分鐘。（院外參訪錸工廠者免）" : "　含簡報製作，每人約 20 分鐘。"),
+              run(HAS_OUTREACH ? "　含簡報製作，每人約 20 分鐘。（僅院外參訪錸工場者免）" : "　含簡報製作，每人約 20 分鐘。"),
             ])], { w: PW - 1400 - 280 }),
           ]}),
 
@@ -23769,7 +23774,7 @@ const doc = new Document({
                 width: { size: 280, type: WidthType.DXA },
                 margins: { top: 80, bottom: 80, left: 140, right: 140 },
               }),
-              makeCell([cellP([run("錸工廠衛教簡報", { bold: true }), run("　30 分鐘，主題見院外訓練 Orientation 檔案（僅限參訪者）")])], { bg: C.lightGray, w: PW - 1400 - 280 }),
+              makeCell([cellP([run("錸工場衛教簡報", { bold: true }), run("　30 分鐘，主題見院外訓練 Orientation 檔案（僅限前往錸工場之 1 位 PGY 製作）")])], { bg: C.lightGray, w: PW - 1400 - 280 }),
             ]}),
           ] : []),
         ],
@@ -24234,12 +24239,27 @@ async function handleGenerate() {
     a.click();
     URL.revokeObjectURL(url);
     setStatus('success', `✓ 下載完成：${filename}`);
+    saveOrientationBridge(year, month, hasOutreach);
   } catch (err) {
     setStatus('error', '產生失敗：' + err.message);
     console.error(err);
   } finally {
     btn.disabled = false;
   }
+}
+
+function saveOrientationBridge(year, month, hasOutreach) {
+  try {
+    localStorage.setItem('geripgy_ig_bridge_orientation', JSON.stringify({ year, month, hasOutreach }));
+  } catch (e) {}
+}
+
+function openIGGenerator() {
+  const year  = document.getElementById('year').value || '115';
+  const month = document.getElementById('month').value || '6';
+  const hasOutreach = document.querySelector('input[name="outreach"]:checked').value === 'yes';
+  saveOrientationBridge(year, month, hasOutreach);
+  window.open('ig_懶人包產生器.html?from=orientation', '_blank');
 }
 </script>
 
