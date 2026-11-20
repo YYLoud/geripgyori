@@ -138,9 +138,14 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
       <div class="card-title" style="margin-bottom:0;">PGY 醫師名單與夜間值班</div>
-      <button class="add-btn" onclick="openPasteModal()" style="background:#E8F4FD;color:#1B5E8A;border-color:#B8D9F0;font-weight:500;">
-        📋 批量貼上醫師名單與電話
-      </button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="add-btn" onclick="clearManualRosterForMonth()" style="background:#FFF8EE;color:#92400E;border-color:#E8C97B;font-weight:500;" title="清除本月份手動修改，恢復為學程表或預設名單">
+          ↺ 恢復預設名單
+        </button>
+        <button class="add-btn" onclick="openPasteModal()" style="background:#E8F4FD;color:#1B5E8A;border-color:#B8D9F0;font-weight:500;">
+          📋 批量貼上醫師名單與電話
+        </button>
+      </div>
     </div>
 
     <!-- Auto-import banner -->
@@ -2463,17 +2468,19 @@ function normalizeRosterItems(arr) {
   }).filter(d => d.name);
 }
 
-function getPGYDoctorsWithSource(mCode) {
+function getPGYDoctorsWithSource(mCode, skipManual) {
   // 1. Manual saved roster for this month
-  try {
-    const customRaw = localStorage.getItem('geripgy_manual_docs_' + mCode);
-    if (customRaw) {
-      const cDocs = JSON.parse(customRaw);
-      if (Array.isArray(cDocs) && cDocs.length > 0) {
-        return { doctors: normalizeRosterItems(cDocs), source: '手動記憶' };
+  if (!skipManual) {
+    try {
+      const customRaw = localStorage.getItem('geripgy_manual_docs_' + mCode);
+      if (customRaw) {
+        const cDocs = JSON.parse(customRaw);
+        if (Array.isArray(cDocs) && cDocs.length > 0) {
+          return { doctors: normalizeRosterItems(cDocs), source: '手動記憶' };
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   // 2. Uploaded schedule in 名單查詢
   try {
@@ -2523,13 +2530,14 @@ function updateRosterMemoryStatusUI(mCode, count, source) {
   const el = document.getElementById('rosterMemoryStatus');
   if (!el) return;
   const label = formatMonthCodeLabel(mCode);
+  const hasDefault = getPGYDoctorsWithSource(mCode, true).doctors.length > 0;
+  const resetBtn = (source === '手動記憶' || (count === 0 && hasDefault))
+    ? `<button type="button" onclick="clearManualRosterForMonth()" style="background:#fff;border:1px solid #C8D6E5;color:#1B5E8A;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">↺ 恢復預設</button>`
+    : '';
   if (count > 0) {
-    const resetBtn = source === '手動記憶'
-      ? `<button type="button" onclick="clearManualRosterForMonth()" style="background:#fff;border:1px solid #C8D6E5;color:#1B5E8A;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">恢復預設</button>`
-      : '';
     el.innerHTML = `<span>📌 <strong>${label}</strong> 名單（共 ${count} 位，來源：${source}）<span style="color:#888;margin-left:4px;">— 編輯後自動記憶</span></span>${resetBtn}`;
   } else {
-    el.innerHTML = `<span>📌 <strong>${label}</strong> 尚無預設名單，請手動新增或使用「批量貼上」（輸入後自動記憶）</span>`;
+    el.innerHTML = `<span>📌 <strong>${label}</strong> 目前無名單，請手動新增、使用「批量貼上」或恢復預設</span>${resetBtn}`;
   }
 }
 
@@ -2574,6 +2582,9 @@ function clearManualRosterForMonth() {
     localStorage.removeItem('geripgy_manual_docs_' + mCode);
   } catch (e) {}
   loadDoctorsForMonth(mCode);
+  if (getDoctors().length === 0) {
+    alert(`${formatMonthCodeLabel(mCode)} 目前沒有內建預設名單或學程表資料。`);
+  }
 }
 
 function initSchedulingRosters() {
