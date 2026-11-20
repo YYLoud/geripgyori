@@ -152,6 +152,8 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
       </div>
     </div>
 
+    <div id="rosterMemoryStatus" style="font-size:11.5px;color:#555;background:#F4F7FB;border:1px solid #DCE6F2;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;"></div>
+
     <div id="doctorList"></div>
     <button class="add-btn" onclick="addDoctor()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -232,6 +234,7 @@ function removeDoctor(id){
   const el=document.getElementById('dr_'+id);
   if(el)el.remove();
   updateQuotaOptions();
+  saveDoctorsToStorage();
 }
 
 function getDoctors(){
@@ -266,6 +269,10 @@ document.getElementById('weekStart').addEventListener('change',function(){
     return `${day} ${dd.getMonth()+1}/${dd.getDate()}`;
   });
   document.getElementById('datePreview').textContent='本週日期：'+dates.join('　');
+  const mCode = (d.getFullYear() - 1911) * 100 + (d.getMonth() + 1);
+  if (mCode !== currentLoadedMonthCode) {
+    loadDoctorsForMonth(mCode);
+  }
 });
 
 function getDoctorCount() {
@@ -323,8 +330,8 @@ function setAllQuotas(n) {
 document.addEventListener('DOMContentLoaded', function() {
   const list = document.getElementById('doctorList');
   if (list) {
-    list.addEventListener('input', updateQuotaOptions);
-    list.addEventListener('change', updateQuotaOptions);
+    list.addEventListener('input', function() { updateQuotaOptions(); saveDoctorsToStorage(); });
+    list.addEventListener('change', function() { updateQuotaOptions(); saveDoctorsToStorage(); });
   }
   updateQuotaOptions();
 });
@@ -2348,6 +2355,7 @@ function applyImportedDoctors() {
   });
 
   dismissImportBanner();
+  saveDoctorsToStorage();
   alert(`✓ 已成功帶入 ${pendingImportDoctors.doctors.length} 位醫師資料！`);
 }
 
@@ -2395,11 +2403,188 @@ function submitPastedDoctors() {
 
   closePasteModal();
   document.getElementById('pasteInput').value = '';
+  saveDoctorsToStorage();
   alert(`✓ 已成功匯入 ${count} 位醫師！`);
 }
 
-window.addEventListener('DOMContentLoaded', checkImportableDoctors);
-checkImportableDoctors();
+// ── Roster Memory (Compatible with 教學活動表產生器) ───────────────
+let currentLoadedMonthCode = null;
+let isLoadingRoster = false;
+
+function getActiveMonthCode() {
+  const ws = document.getElementById('weekStart')?.value;
+  if (ws) {
+    const d = new Date(ws + 'T00:00:00');
+    if (!isNaN(d.getTime())) {
+      return (d.getFullYear() - 1911) * 100 + (d.getMonth() + 1);
+    }
+  }
+  const now = new Date();
+  return (now.getFullYear() - 1911) * 100 + (now.getMonth() + 1);
+}
+
+function formatMonthCodeLabel(mCode) {
+  const y = Math.floor(mCode / 100);
+  const m = mCode % 100;
+  return `${y}年${m}月`;
+}
+
+function getPhoneBook() {
+  try {
+    return JSON.parse(localStorage.getItem('geripgy_phone_book') || '{}') || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function updatePhoneBook(doctors) {
+  try {
+    const book = getPhoneBook();
+    let changed = false;
+    doctors.forEach(d => {
+      if (d.name && d.phone && book[d.name] !== d.phone) {
+        book[d.name] = d.phone;
+        changed = true;
+      }
+    });
+    if (changed) {
+      localStorage.setItem('geripgy_phone_book', JSON.stringify(book));
+    }
+  } catch (e) {}
+}
+
+function normalizeRosterItems(arr) {
+  const book = getPhoneBook();
+  return arr.map(d => {
+    const rawName = typeof d === 'string' ? d : (d.name || '');
+    const name = rawName.replace(/醫師$/, '').trim();
+    const phone = (typeof d === 'object' && d ? (d.phone || d.code || '') : '') || book[name] || '';
+    return { name, phone };
+  }).filter(d => d.name);
+}
+
+function getPGYDoctorsWithSource(mCode) {
+  // 1. Manual saved roster for this month
+  try {
+    const customRaw = localStorage.getItem('geripgy_manual_docs_' + mCode);
+    if (customRaw) {
+      const cDocs = JSON.parse(customRaw);
+      if (Array.isArray(cDocs) && cDocs.length > 0) {
+        return { doctors: normalizeRosterItems(cDocs), source: '手動記憶' };
+      }
+    }
+  } catch (e) {}
+
+  // 2. Uploaded schedule in 名單查詢
+  try {
+    const allRaw = localStorage.getItem('geripgy_all_schedule_doctors');
+    if (allRaw) {
+      const allData = JSON.parse(allRaw);
+      if (allData && allData[mCode] && allData[mCode].length > 0) {
+        return { doctors: normalizeRosterItems(allData[mCode]), source: '學程表匯入' };
+      }
+    }
+  } catch (e) {}
+
+  // 3. Transfer doctors from 名單查詢
+  try {
+    const trRaw = localStorage.getItem('geripgy_transfer_doctors');
+    if (trRaw) {
+      const trData = JSON.parse(trRaw);
+      if (trData && trData.doctors && trData.doctors.length > 0) {
+        if (!trData.monthCode || parseInt(trData.monthCode) === mCode) {
+          return { doctors: normalizeRosterItems(trData.doctors), source: '名單查詢帶入' };
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 4. Fallback defaults from 115學年度 PGY2 老醫學程表
+  const defaultRosters = {
+    11508: ['張汝禎', '林家助', '張大中'],
+    11509: ['鄒曉揚', '李昀庭', '李沛東'],
+    11510: ['李宣諠', '沈弘祥', '郭彥希'],
+    11511: ['郭王雨田', '林享辰', '柯芊劭'],
+    11512: ['林紘睿', '陶孟昀', '李易淳'],
+    11601: ['張乃文', '林芷筠', '林蓁芸'],
+    11602: ['黃孟捷', '陳重佑', '戴翊如'],
+    11603: ['林靖瑄', '謝皓穎', '徐林陞', '沈珍伊'],
+    11604: ['陳申霖', '姜綾嵐', '謝昇峰'],
+    11605: ['何權', '林俊毓', '楊萬暄', '徐睿']
+  };
+  if (defaultRosters[mCode]) {
+    return { doctors: normalizeRosterItems(defaultRosters[mCode]), source: '內建學程表' };
+  }
+
+  return { doctors: [], source: '' };
+}
+
+function updateRosterMemoryStatusUI(mCode, count, source) {
+  const el = document.getElementById('rosterMemoryStatus');
+  if (!el) return;
+  const label = formatMonthCodeLabel(mCode);
+  if (count > 0) {
+    const resetBtn = source === '手動記憶'
+      ? `<button type="button" onclick="clearManualRosterForMonth()" style="background:#fff;border:1px solid #C8D6E5;color:#1B5E8A;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;">恢復預設</button>`
+      : '';
+    el.innerHTML = `<span>📌 <strong>${label}</strong> 名單（共 ${count} 位，來源：${source}）<span style="color:#888;margin-left:4px;">— 編輯後自動記憶</span></span>${resetBtn}`;
+  } else {
+    el.innerHTML = `<span>📌 <strong>${label}</strong> 尚無預設名單，請手動新增或使用「批量貼上」（輸入後自動記憶）</span>`;
+  }
+}
+
+function saveDoctorsToStorage() {
+  if (isLoadingRoster) return;
+  const mCode = getActiveMonthCode();
+  const docs = getDoctors().map(d => ({ name: d.name, phone: d.phone || '' }));
+  try {
+    if (docs.length > 0) {
+      localStorage.setItem('geripgy_manual_docs_' + mCode, JSON.stringify(docs));
+      updatePhoneBook(docs);
+      updateRosterMemoryStatusUI(mCode, docs.length, '手動記憶');
+    } else {
+      localStorage.removeItem('geripgy_manual_docs_' + mCode);
+      updateRosterMemoryStatusUI(mCode, 0, '');
+    }
+  } catch (e) {}
+}
+
+function loadDoctorsForMonth(mCode) {
+  if (!mCode) mCode = getActiveMonthCode();
+  currentLoadedMonthCode = mCode;
+  const res = getPGYDoctorsWithSource(mCode);
+
+  isLoadingRoster = true;
+  try {
+    const listEl = document.getElementById('doctorList');
+    if (listEl) listEl.innerHTML = '';
+    if (res.doctors.length > 0) {
+      res.doctors.forEach(d => addDoctor(d.name, d.phone));
+    }
+    updateRosterMemoryStatusUI(mCode, res.doctors.length, res.source);
+  } finally {
+    isLoadingRoster = false;
+  }
+  updateQuotaOptions();
+}
+
+function clearManualRosterForMonth() {
+  const mCode = getActiveMonthCode();
+  try {
+    localStorage.removeItem('geripgy_manual_docs_' + mCode);
+  } catch (e) {}
+  loadDoctorsForMonth(mCode);
+}
+
+function initSchedulingRosters() {
+  checkImportableDoctors();
+  loadDoctorsForMonth(getActiveMonthCode());
+}
+
+window.addEventListener('DOMContentLoaded', initSchedulingRosters);
+if (document.readyState !== 'loading') {
+  initSchedulingRosters();
+}
 </script>
 
 <!-- Bulk Paste Modal -->
