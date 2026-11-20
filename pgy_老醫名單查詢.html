@@ -593,6 +593,7 @@ function parseExcel(buffer) {
 
   // 1. Try to find contact info sheet
   let contactMap = {}; // cleanName/rawName -> { code, phone, empId, email }
+  let contactByEmpId = {}; // empId -> { code, phone, empId, email }
   const contactSheetName = wb.SheetNames.find(n => n.includes('聯絡') || n.includes('資訊') || n.includes('通訊'));
 
   if (contactSheetName) {
@@ -634,6 +635,7 @@ function parseExcel(buffer) {
           const info = { code, phone, empId, email };
           contactMap[cleanName] = info;
           if (rawName !== cleanName) contactMap[rawName] = info;
+          if (empId) contactByEmpId[empId] = info;
         }
         break;
       }
@@ -652,23 +654,26 @@ function parseExcel(buffer) {
   let headerRowIdx = -1;
   let monthCols = {};
 
+  function parseMonthHeaderVal(val) {
+    if (val == null) return null;
+    const s = typeof val === 'number' ? String(Math.floor(val)) : String(val).trim();
+    if (/^\d{5}$/.test(s)) {
+      const y = parseInt(s.substring(0, 3), 10);
+      const m = parseInt(s.substring(3), 10);
+      if (y >= 100 && m >= 1 && m <= 12) return parseInt(s, 10);
+    }
+    return null;
+  }
+
   for (let i = 0; i < Math.min(raw.length, 10); i++) {
     const row = raw[i];
     if (!row) continue;
-    const monthFound = row.filter(v => {
-      if (typeof v === 'number') {
-        const s = String(Math.floor(v));
-        return s.length === 5 && parseInt(s.substring(0, 3)) >= 100 && parseInt(s.substring(3)) >= 1;
-      }
-      return false;
-    });
+    const monthFound = row.filter(v => parseMonthHeaderVal(v) !== null);
     if (monthFound.length >= 3) {
       headerRowIdx = i;
       row.forEach((val, col) => {
-        if (typeof val === 'number') {
-          const s = String(Math.floor(val));
-          if (s.length === 5) monthCols[col] = Math.floor(val);
-        }
+        const mc = parseMonthHeaderVal(val);
+        if (mc !== null) monthCols[col] = mc;
       });
       break;
     }
@@ -678,8 +683,12 @@ function parseExcel(buffer) {
     throw new Error('找不到月份欄位，請確認是正確的學程表格式');
   }
 
-  const nameCol = 1;
-  const programCol = 0;
+  const headerRow = raw[headerRowIdx] || [];
+  let nameCol = headerRow.findIndex(v => v != null && String(v).includes('姓名'));
+  let programCol = headerRow.findIndex(v => v != null && String(v).includes('學程'));
+  const empIdScheduleCol = headerRow.findIndex(v => v != null && (String(v).includes('員編') || String(v).includes('員工代號') || String(v).includes('工號')));
+  if (nameCol === -1) nameCol = 1;
+  if (programCol === -1) programCol = 0;
 
   const result = {};
   const monthList = Object.values(monthCols).sort((a, b) => a - b);
@@ -692,10 +701,14 @@ function parseExcel(buffer) {
     let rawName = String(row[nameCol]).trim();
     let cleanName = extractCleanDoctorName(rawName);
     const program = row[programCol] ? String(row[programCol]).trim() : '';
+    const scheduleEmpId = empIdScheduleCol !== -1 && row[empIdScheduleCol] != null ? String(row[empIdScheduleCol]).trim() : '';
 
-    if (!cleanName || cleanName.includes('學年度') || cleanName === '學員姓名' || cleanName === '月份/科別') continue;
+    if (!cleanName || cleanName.includes('學年度') || cleanName === '學員姓名' || cleanName === '月份/科別' || cleanName === '老醫' || (!program && !scheduleEmpId)) continue;
 
-    const contact = findContactInfo(rawName, contactMap);
+    let contact = findContactInfo(rawName, contactMap);
+    if (!contact.phone && !contact.code && scheduleEmpId && contactByEmpId[scheduleEmpId]) {
+      contact = contactByEmpId[scheduleEmpId];
+    }
 
     Object.entries(monthCols).forEach(([col, monthCode]) => {
       const dept = row[parseInt(col)];
@@ -706,7 +719,7 @@ function parseExcel(buffer) {
           program: program,
           code: contact.code,
           phone: contact.phone,
-          empId: contact.empId,
+          empId: contact.empId || scheduleEmpId,
           email: contact.email
         });
       }
