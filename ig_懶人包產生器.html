@@ -136,7 +136,7 @@ body {
 /* Dropzones */
 .upload-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 1.25rem;
 }
@@ -369,7 +369,7 @@ body {
   cursor: pointer;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .upload-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -407,6 +407,14 @@ body {
         <div class="dropzone-title">老年醫學科教學活動表 (.docx)</div>
         <div class="dropzone-sub">點擊選擇或拖曳「老年醫學科教學活動表.docx」至此</div>
         <div class="dropzone-status" id="status-sch"></div>
+      </label>
+
+      <label class="dropzone" id="dz-out">
+        <input type="file" accept=".docx" id="file-out">
+        <div class="dropzone-icon">🚌</div>
+        <div class="dropzone-title">院外訓練 Orientation (.docx)</div>
+        <div class="dropzone-sub">拖曳「院外訓練_orientation.docx」（自動排除行程表）</div>
+        <div class="dropzone-status" id="status-out"></div>
       </label>
     </div>
 
@@ -517,7 +525,8 @@ let currentThemeKey = 'coral';
 let currentRatio = '4:5'; // '4:5' -> 1080x1350, '1:1' -> 1080x1080
 let state = {
   orientation: null,
-  schedule: null
+  schedule: null,
+  outreach: null
 };
 let renderedSlides = []; // { id, title, dataUrl, included }
 
@@ -907,6 +916,32 @@ function parseScheduleDocx(xmlStr) {
   return { year, month, specialEvents, weeklyRef, clinicSessions };
 }
 
+function parseOutreachDocx(xmlStr) {
+  const doc = parseXmlDoc(xmlStr);
+  const body = doc.getElementsByTagNameNS('*', 'body')[0];
+  const ps = body.getElementsByTagNameNS('*', 'p');
+  const lines = [];
+  for (let i = 0; i < ps.length; i++) {
+    const t = getParaText(ps[i]);
+    if (t) lines.push(t);
+  }
+  const full = lines.join('\n');
+
+  let month = '';
+  const mMatch = full.match(/(\d{1,2})\s*月\s*課程表/);
+  if (mMatch) month = mMatch[1];
+
+  let topic = '認識高血壓';
+  const tMatch = full.match(/本次演講主題為[『「]([^』」]+)[』」]/);
+  if (tMatch) topic = tMatch[1].trim();
+
+  let reportDate = '（請見群組公告）';
+  const rMatch = full.match(/成果報告[：:]\s*([^\n]+?上午\s*11\s*點)/);
+  if (rMatch) reportDate = rMatch[1].trim();
+
+  return { month, topic, reportDate };
+}
+
 function isStandardFixed(txt) {
   return txt.includes('晨會 (含個案討論)') ||
          txt.includes('晨會(含個案討論)') ||
@@ -1087,6 +1122,14 @@ function buildSlidesList() {
         });
       }
     }
+  }
+
+  // --- C. 院外訓練 Orientation 頁面（排除行程表圖片與表格） ---
+  if (state.outreach) {
+    const out = state.outreach;
+    list.push({ id: 'out-cover',     title: '院外訓練重點 & 簡報任務', draw: (p, tot) => drawOutCover(out, t, p, tot) });
+    list.push({ id: 'out-topics',    title: '院外注意事項 & 10大重點', draw: (p, tot) => drawOutTopics(out, t, p, tot) });
+    list.push({ id: 'out-locations', title: '院外機構地點 & 交通指引', draw: (p, tot) => drawOutLocations(out, t, p, tot) });
   }
   return list;
 }
@@ -1662,6 +1705,174 @@ function drawSchClinic(sch, sessions, suffix, t, pageNum, totalPages) {
   return canvas.toDataURL('image/png');
 }
 
+function drawOutCover(out, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  const titlePrefix = out.month ? `${out.month}月 ` : '';
+  drawSlideChrome(ctx, w, h, t, `${titlePrefix}院外訓練 Orientation`, '院外訓練重點 & 簡報任務', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 248;
+
+  // 機構副標卡
+  fillRoundRect(ctx, 64, y, w - 128, is11 ? 82 : 96, 20, t.bgAlt, t.cardBorder, 2);
+  ctx.fillStyle = t.primary;
+  ctx.font = `800 ${is11 ? 28 : 32}px "Noto Sans TC", sans-serif`;
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🏥 臺北市私立貴族老人長期照顧中心（養護型）＋ 錸工場', 92, y + (is11 ? 41 : 48));
+  y += (is11 ? 102 : 124);
+
+  // Card 1: 週三下午錸工場衛教簡報
+  const c1H = is11 ? 305 : 395;
+  fillRoundRect(ctx, 64, y, w - 128, c1H, 24, t.cardBg, t.cardBorder, 3);
+  fillRoundRect(ctx, 64, y, 16, c1H, 8, t.primary);
+  drawBadge(ctx, '🎤 週三下午 · 錸工場衛教簡報（僅前往該 1 位）', 104, y + (is11 ? 20 : 26), t.primary, '#FFFFFF', is11 ? 25 : 28, 20, 9);
+
+  let ay = y + (is11 ? 84 : 104);
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = t.primary;
+  ctx.font = `900 ${is11 ? 34 : 40}px "Noto Sans TC", sans-serif`;
+  ctx.fillText(`📌 主題：『${out.topic}』`, 104, ay);
+  ay += (is11 ? 56 : 70);
+
+  const f1 = `700 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
+  const h1 = drawWrappedText(ctx, '• 準備約 30 分鐘衛教簡報（對象：參與錸工場之長者）', 104, ay, w - 208, is11 ? 36 : 44, t.dark, f1);
+  ay += h1 + (is11 ? 10 : 16);
+  const h2 = drawWrappedText(ctx, '• 參考路徑：OneDrive > PGY老年醫學參考資料 > 衛教參考資料', 104, ay, w - 208, is11 ? 36 : 44, t.muted, f1);
+  ay += h2 + (is11 ? 10 : 16);
+  drawWrappedText(ctx, '• 流程：衛教簡報 → 長者提問 → 錸工場參訪', 104, ay, w - 208, is11 ? 36 : 44, t.secondary, `800 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`);
+  y += c1H + (is11 ? 20 : 28);
+
+  // Card 2: 成果報告
+  const c2H = h - y - 88;
+  fillRoundRect(ctx, 64, y, w - 128, c2H, 24, t.cardBg, t.cardBorder, 3);
+  fillRoundRect(ctx, 64, y, 16, c2H, 8, t.secondary);
+  drawBadge(ctx, '💻 成果報告（線上會議）', 104, y + (is11 ? 20 : 26), t.secondary, '#FFFFFF', is11 ? 25 : 28, 20, 9);
+
+  let by = y + (is11 ? 82 : 102);
+  ctx.fillStyle = t.secondary;
+  ctx.font = `900 ${is11 ? 32 : 38}px "Noto Sans TC", sans-serif`;
+  ctx.fillText(`📅 時間：${out.reportDate}`, 104, by);
+  by += (is11 ? 52 : 66);
+  drawWrappedText(ctx, '• 每人準備約 10 分鐘「院外訓練心得」簡報與其他成員分享', 104, by, w - 208, is11 ? 36 : 44, t.dark, f1);
+  by += (is11 ? 52 : 68);
+  ctx.fillStyle = t.muted;
+  ctx.font = `700 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 採視訊會議形式，請自備可視訊設備（屆時提供會議連結）', 104, by);
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOutTopics(out, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  const titlePrefix = out.month ? `${out.month}月 ` : '';
+  drawSlideChrome(ctx, w, h, t, `${titlePrefix}院外訓練 Orientation`, '注意事項 & 10 大學習重點', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 244;
+
+  // 注意事項橫幅
+  const nH = is11 ? 156 : 196;
+  fillRoundRect(ctx, 64, y, w - 128, nH, 22, t.bgAlt, t.accent, 3);
+  drawBadge(ctx, '⚠️ 注意事項 & 繳交作業', 92, y + 18, t.accent, '#FFFFFF', 25, 18, 8);
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = t.dark;
+  ctx.font = `800 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('• 請攜帶白袍至機構；有問題立即通知臨床老師或於 Line 群組詢問', 92, y + (is11 ? 70 : 82));
+  ctx.fillStyle = t.primary;
+  ctx.fillText('• 應繳交作業：學習心得報告（學習歷程及心得回饋，製作簡報）', 92, y + (is11 ? 108 : 132));
+  y += nH + (is11 ? 20 : 28);
+
+  // 10 大學習重點（2 欄 5+5 卡片）
+  ctx.fillStyle = t.dark;
+  ctx.font = `800 ${is11 ? 28 : 32}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('🎯 PGY 學員學習重點與主題', 64, y);
+  y += (is11 ? 44 : 54);
+
+  const topics = [
+    '1. 養護機構設置標準與軟硬體',
+    '2. 跨團隊會議的參與',
+    '3. 住民生活評估 (含 CGA)',
+    '4. 住民失能失智預防',
+    '5. 住民用藥評估',
+    '6. 住民急性醫療預防與處置',
+    '7. 養護機構住民照護品質指標',
+    '8. 養護機構的感染控制',
+    '9. 認識長照專業團隊角色',
+    '10. 跨專業團隊合作與運作'
+  ];
+
+  const colW = (w - 128 - 22) / 2;
+  const availH = h - y - 82;
+  const gap = is11 ? 12 : 18;
+  const rowH = Math.floor((availH - gap * 4) / 5);
+
+  topics.forEach((tp, idx) => {
+    const col = idx < 5 ? 0 : 1;
+    const row = idx % 5;
+    const bx = 64 + col * (colW + 22);
+    const by = y + row * (rowH + gap);
+    fillRoundRect(ctx, bx, by, colW, rowH, 18, t.cardBg, t.cardBorder, 2);
+    ctx.fillStyle = t.dark;
+    ctx.font = `700 ${is11 ? 24 : 28}px "Noto Sans TC", sans-serif`;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tp, bx + 22, by + rowH / 2 + 1);
+  });
+
+  return canvas.toDataURL('image/png');
+}
+
+function drawOutLocations(out, t, pageNum, totalPages) {
+  const { canvas, ctx, w, h } = createCanvas();
+  const titlePrefix = out.month ? `${out.month}月 ` : '';
+  drawSlideChrome(ctx, w, h, t, `${titlePrefix}截圖保存`, '院外機構地點 & 交通指引', pageNum, totalPages);
+
+  const is11 = h === 1080;
+  let y = 248;
+
+  // 1. 貴族老人長期照顧中心
+  const c1H = is11 ? 425 : 560;
+  fillRoundRect(ctx, 64, y, w - 128, c1H, 26, t.cardBg, t.cardBorder, 3);
+  fillRoundRect(ctx, 64, y, 16, c1H, 8, t.primary);
+  drawBadge(ctx, '🏥 貴族老人長期照顧中心（養護型）', 104, y + 24, t.primary, '#FFFFFF', is11 ? 26 : 30, 22, 10);
+
+  let ay = y + (is11 ? 92 : 112);
+  const gap1 = is11 ? 56 : 74;
+  ctx.textBaseline = 'top';
+  ctx.fillStyle = t.primary;
+  ctx.font = `800 ${is11 ? 29 : 34}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('📞 連繫窗口：張妤安督導 02-28965555、02-28954492', 104, ay);
+  ay += gap1;
+
+  ctx.fillStyle = t.dark;
+  ctx.font = `800 ${is11 ? 28 : 33}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('📍 地址：台北市北投區大業路 452 巷 2 號', 104, ay);
+  ay += gap1;
+
+  ctx.fillStyle = t.secondary;
+  ctx.font = `800 ${is11 ? 27 : 31}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('🚇 捷運：淡水線（紅線）「北投站」步行約 2 分鐘', 104, ay);
+  ay += gap1;
+
+  const hBus = drawWrappedText(ctx, '🚌 公車：218、302、308、631、632、指南客運 2／5 至「大業路口二」；266 至「大業路三」下車', 104, ay, w - 208, is11 ? 38 : 46, t.muted, `700 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`);
+  y += c1H + (is11 ? 22 : 30);
+
+  // 2. 錸工場
+  const c2H = h - y - 88;
+  fillRoundRect(ctx, 64, y, w - 128, c2H, 26, t.cardBg, t.cardBorder, 3);
+  fillRoundRect(ctx, 64, y, 16, c2H, 8, t.secondary);
+  drawBadge(ctx, '🏢 錸工場（週三下午參訪）', 104, y + 24, t.secondary, '#FFFFFF', is11 ? 26 : 30, 22, 10);
+
+  let by = y + (is11 ? 92 : 112);
+  ctx.fillStyle = t.dark;
+  ctx.font = `800 ${is11 ? 28 : 33}px "Noto Sans TC", sans-serif`;
+  ctx.fillText('📍 地址：新北市永和區永和路二段 116 號 3 樓', 104, by);
+  by += (is11 ? 54 : 72);
+
+  drawWrappedText(ctx, '🚇 捷運：頂溪站 1 號出口左轉 → 直走過馬路 → 左轉（入口在光南旁邊）', 104, by, w - 208, is11 ? 38 : 48, t.secondary, `800 ${is11 ? 27 : 31}px "Noto Sans TC", sans-serif`);
+
+  return canvas.toDataURL('image/png');
+}
+
 // ══════════════════════════════════════════════════════════════════════
 // 6. 渲染與匯出控制
 // ══════════════════════════════════════════════════════════════════════
@@ -1779,10 +1990,14 @@ async function handleFile(file, type) {
       state.orientation = parseOrientationDocx(xml);
       document.getElementById('dz-ori').classList.add('loaded');
       document.getElementById('status-ori').textContent = `✓ 已載入 ${state.orientation.year}年${state.orientation.month}月 Orientation（${state.orientation.hasOutreach ? '含院外訓練' : '無院外訓練'}）`;
-    } else {
+    } else if (type === 'sch') {
       state.schedule = parseScheduleDocx(xml);
       document.getElementById('dz-sch').classList.add('loaded');
       document.getElementById('status-sch').textContent = `✓ 已載入 ${state.schedule.year}年${state.schedule.month}月 活動表（${state.schedule.specialEvents.length} 項特別活動 · ${state.schedule.clinicSessions.length} 場門診教學）`;
+    } else {
+      state.outreach = parseOutreachDocx(xml);
+      document.getElementById('dz-out').classList.add('loaded');
+      document.getElementById('status-out').textContent = `✓ 已載入 ${state.outreach.month ? state.outreach.month + '月 ' : ''}院外訓練 Orientation（已自動排除行程表）`;
     }
     renderAllSlides();
   } catch (err) {
@@ -1809,6 +2024,7 @@ function bindDropzone(dzId, inputId, type) {
 
 bindDropzone('dz-ori', 'file-ori', 'ori');
 bindDropzone('dz-sch', 'file-sch', 'sch');
+bindDropzone('dz-out', 'file-out', 'out');
 
 // 範例資料載入
 function loadDemoData() {
@@ -1837,10 +2053,17 @@ function loadDemoData() {
       { date: '10/23', dow: 'W5', time: '14:00', trainee: '李宣諠', loc: 'B2門診188診(神經科診區)', doc: '葉鎧境醫師' }
     ]
   };
+  state.outreach = {
+    month: '11',
+    topic: '認識肌少症與預防跌倒',
+    reportDate: '11/27 上午11點'
+  };
   document.getElementById('dz-ori').classList.add('loaded');
   document.getElementById('status-ori').textContent = '✓ 範例：115年11月 Orientation 手冊';
   document.getElementById('dz-sch').classList.add('loaded');
   document.getElementById('status-sch').textContent = '✓ 範例：115年10月 教學活動表';
+  document.getElementById('dz-out').classList.add('loaded');
+  document.getElementById('status-out').textContent = '✓ 範例：11月 院外訓練 Orientation';
   renderAllSlides();
 }
 
@@ -1870,7 +2093,18 @@ function loadDemoData() {
       }
     } catch (e) {}
   }
-  if (state.orientation || state.schedule) {
+  if (from === 'outreach' || !from) {
+    try {
+      const raw = localStorage.getItem('geripgy_ig_bridge_outreach');
+      if (raw && from === 'outreach') {
+        const d = JSON.parse(raw);
+        state.outreach = d;
+        document.getElementById('dz-out').classList.add('loaded');
+        document.getElementById('status-out').textContent = `✓ 已自動匯入 ${d.month ? d.month + '月 ' : ''}院外訓練 Orientation`;
+      }
+    } catch (e) {}
+  }
+  if (state.orientation || state.schedule || state.outreach) {
     renderAllSlides();
   }
 })();

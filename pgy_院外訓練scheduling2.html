@@ -80,6 +80,11 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
       <input type="date" id="reportDate" />
       <span style="font-size:12px;color:#aaa">時間固定 11:00 上午</span>
     </div>
+    <div class="row" style="margin-top:10px">
+      <span class="lbl">錸工場衛教主題</span>
+      <input type="text" id="healthTopic" value="認識高血壓" placeholder="例：認識高血壓" style="flex:1;max-width:260px;padding:6px 10px;border:0.5px solid #ccc;border-radius:6px;font-size:13px;outline:none;" />
+      <span style="font-size:12px;color:#aaa">將帶入 Orientation 文件（不需輸入『』）</span>
+    </div>
   </div>
 
   <div class="card">
@@ -188,6 +193,9 @@ td:first-child{font-weight:500;font-size:13px;text-align:left;background:#fafaf8
     </button>
     <button class="export-btn" id="od-upload-btn" onclick="odUpload()" disabled style="background:#0078D4;border-color:#0078D4;margin-top:6px;opacity:0.45;">
       ☁ <span class="od-label">先產生文件，再上傳到 OneDrive</span>
+    </button>
+    <button class="export-btn" onclick="openOutreachIGGenerator()" style="background:linear-gradient(135deg,#FF6B4A,#EC4899);border-color:transparent;margin-top:6px;">
+      📱 轉換成 IG 懶人包（不含行程表）
     </button>
   </div>
 </div>
@@ -727,7 +735,7 @@ const DOC_AFTER  = `
           <w:b/>
           <w:bCs/>
         </w:rPr>
-        <w:t>『認識高血壓』，</w:t>
+        <w:t>『{{TOPIC}}』，</w:t>
       </w:r>
       
       
@@ -2216,7 +2224,10 @@ async function exportDocx(){
 
   const tableXml=buildTableXml(schedule,docs,weekStart);
 
-  let docXml=DOC_BEFORE.replace('{{MONTH}}',month);
+  const rawTopic=(document.getElementById('healthTopic')?.value||'').trim().replace(/^[『「]|[』」]$/g,'').trim() || '認識高血壓';
+  const safeTopic=rawTopic.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  let docXml=DOC_BEFORE.replace('{{MONTH}}',month).replace('{{TOPIC}}',safeTopic);
   docXml+=tableXml;
   docXml+=DOC_AFTER.replace('{{RPT_DATE}}',reportDateStr+' ');
 
@@ -2239,6 +2250,26 @@ async function exportDocx(){
   a.click();
   URL.revokeObjectURL(url);
   odSetBlob(blob, filename);
+}
+
+function openOutreachIGGenerator() {
+  const wsVal = document.getElementById('weekStart')?.value || '';
+  let month = '';
+  if (wsVal) {
+    const d0 = new Date(wsVal + 'T00:00:00');
+    if (!isNaN(d0.getTime())) month = String(d0.getMonth() + 1);
+  }
+  const topic = (document.getElementById('healthTopic')?.value || '').trim().replace(/^[『「]|[』」]$/g, '').trim() || '認識高血壓';
+  const rptVal = document.getElementById('reportDate')?.value || '';
+  let reportDate = '（請見群組公告）';
+  if (rptVal) {
+    const rd = new Date(rptVal + 'T00:00:00');
+    if (!isNaN(rd.getTime())) reportDate = `${rd.getMonth() + 1}/${rd.getDate()} 上午11點`;
+  }
+  try {
+    localStorage.setItem('geripgy_ig_bridge_outreach', JSON.stringify({ month, topic, reportDate }));
+  } catch (e) {}
+  window.open('ig_懶人包產生器.html?from=outreach', '_blank');
 }
 
 addDoctor('','');addDoctor('','');addDoctor('','');
@@ -2588,6 +2619,21 @@ function clearManualRosterForMonth() {
 }
 
 function initSchedulingRosters() {
+  const topicInput = document.getElementById('healthTopic');
+  if (topicInput) {
+    try {
+      const savedTopic = localStorage.getItem('geripgy_health_topic');
+      if (savedTopic) topicInput.value = savedTopic;
+    } catch (e) {}
+    if (!topicInput.dataset.bound) {
+      topicInput.dataset.bound = '1';
+      topicInput.addEventListener('input', function() {
+        try {
+          localStorage.setItem('geripgy_health_topic', topicInput.value);
+        } catch (e) {}
+      });
+    }
+  }
   checkImportableDoctors();
   loadDoctorsForMonth(getActiveMonthCode());
 }
