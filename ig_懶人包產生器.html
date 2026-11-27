@@ -1586,8 +1586,8 @@ function drawSchWeekly(sch, t, pageNum, totalPages) {
       ctx.font = `800 ${is11 ? 26 : 30}px "Noto Sans TC", sans-serif`;
       ctx.fillText('住診教學、個案討論（會再由 VS 安排時間）', 265, y + topPad);
 
-      ctx.font = `700 ${is11 ? 25 : 29}px "Noto Sans TC", sans-serif`;
-      ctx.fillText('12:10 跨團隊會議（7K討論室）', 265, y + topPad + lineStep);
+      ctx.font = `700 ${is11 ? 21 : 24}px "Noto Sans TC", sans-serif`;
+      ctx.fillText('12:10 跨團隊會議｜友誼大樓會議室(請見Line群組通知)', 265, y + topPad + lineStep);
 
       if (mon1310Dates.length > 0) {
         ctx.fillStyle = t.primary;
@@ -1619,7 +1619,7 @@ function drawSchWeekly(sch, t, pageNum, totalPages) {
     ctx.fillStyle = t.muted;
     ctx.font = '700 28px "Noto Sans TC", sans-serif';
     ctx.textBaseline = 'top';
-    ctx.fillText('💡 週四、週五 07:30 另有住院醫師晨會／全院晨會（友誼大樓會議室）', 64, y + 6);
+    ctx.fillText('💡 週四、週五 07:30 另有住院醫師晨會／全院晨會（B1大會議室）', 64, y + 6);
   }
 
   return canvas.toDataURL('image/png');
@@ -2040,7 +2040,7 @@ function loadDemoData() {
     ],
     weeklyRef: [
       { week: 'W1', time: '09:00', act: '住診教學、個案討論', loc: '7K討論室/病房', doc: '葉鎧境、陳霈容、葉勁甫醫師' },
-      { week: 'W1', time: '12:10', act: '跨團隊會議', loc: '7K討論室', doc: '' },
+      { week: 'W1', time: '12:10', act: '跨團隊會議', loc: '友誼大樓會議室(請見Line群組通知)', doc: '' },
       { week: 'W2', time: '09:00', act: '晨會、個案討論、Journal Reading', loc: '7K討論室', doc: '林威佑醫師' },
       { week: 'W3', time: '07:30', act: '神內晨會／12:30神內午餐會', loc: '友誼大樓', doc: '連立明主任' },
       { week: 'W4', time: '08:30', act: '門診教學', loc: 'B1門診146診(家醫科診區)', doc: '林威佑醫師' },
