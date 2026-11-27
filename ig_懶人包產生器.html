@@ -837,6 +837,7 @@ function parseScheduleDocx(xmlStr) {
   for (let r = 2; r + 1 < calRows.length; r += 2) {
     const dateRow = calRows[r];
     const contentRow = calRows[r + 1];
+    const weekOutreach = [];
     for (let c = 0; c < 5; c++) {
       const dateTxt = dateRow[c]?.[0]?.text || '';
       if (!dateTxt) continue;
@@ -849,6 +850,10 @@ function parseScheduleDocx(xmlStr) {
         const txt = item.text;
         if (txt === '假日') {
           specialEvents.push({ date: dateTxt, dow: weekdays[c], text: '國定／休假日', kind: 'holiday' });
+        } else if (item.color === '4A7C59' || txt.includes('院外訓練同步進行')) {
+          weekOutreach.push({ date: dateTxt, dow: weekdays[c] });
+        } else if (txt.includes('回饋會議') || txt.includes('院外訓練回饋')) {
+          specialEvents.push({ date: dateTxt, dow: weekdays[c], text: txt, kind: 'feedback' });
         } else if (weekdays[c] === 'W1' && txt.includes('13:10') && txt.includes('團隊會議')) {
           specialEvents.push({ date: dateTxt, dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' });
         } else if (txt.includes('神放跨科討論會')) {
@@ -858,7 +863,25 @@ function parseScheduleDocx(xmlStr) {
         }
       });
     }
+    if (weekOutreach.length === 1) {
+      specialEvents.push({ date: weekOutreach[0].date, dow: weekOutreach[0].dow, text: '院外訓練（同步進行）', kind: 'outreach' });
+    } else if (weekOutreach.length === 5) {
+      specialEvents.push({
+        date: `${weekOutreach[0].date}–${weekOutreach[4].date}`,
+        dow: '',
+        text: '院外訓練週（W1–W5 同步進行）',
+        kind: 'outreach'
+      });
+    } else if (weekOutreach.length > 1) {
+      specialEvents.push({
+        date: '院外訓練',
+        dow: '',
+        text: `${weekOutreach.map(x => `${x.date}(${x.dow})`).join('、')} 院外訓練`,
+        kind: 'outreach'
+      });
+    }
   }
+  sortSpecialEvents(specialEvents);
 
   // Table 1: 固定每週教學活動參考表
   const weeklyRef = [];
@@ -940,6 +963,20 @@ function parseOutreachDocx(xmlStr) {
   if (rMatch) reportDate = rMatch[1].trim();
 
   return { month, topic, reportDate };
+}
+
+function eventSortKey(ev) {
+  const src = `${ev.date || ''} ${ev.text || ''}`;
+  const m = src.match(/(\d{1,2})\/(\d{1,2})/);
+  const base = m ? (parseInt(m[1], 10) * 100 + parseInt(m[2], 10)) : 9999;
+  const tie = ev.kind === 'outreach' ? 0 : 1;
+  return base * 10 + tie;
+}
+
+function sortSpecialEvents(list) {
+  if (!Array.isArray(list)) return list;
+  list.sort((a, b) => eventSortKey(a) - eventSortKey(b));
+  return list;
 }
 
 function isStandardFixed(txt) {
@@ -1092,6 +1129,7 @@ function buildSlidesList() {
     const sch = state.schedule;
     list.push({ id: 'sch-weekly', title: `${sch.year}年${sch.month}月 每週固定教學`, draw: (p, tot) => drawSchWeekly(sch, t, p, tot) });
     if (sch.specialEvents.length > 0) {
+      sortSpecialEvents(sch.specialEvents);
       const hasHoliday = sch.specialEvents.some(e => e.kind === 'holiday');
       const baseTitle = hasHoliday ? '特別活動 & 休假提醒' : '特別活動提醒';
       // 若特別活動多，分頁顯示保持大字體
@@ -1639,25 +1677,27 @@ function drawSchSpecial(sch, events, baseTitle, suffix, t, pageNum, totalPages) 
 
   events.forEach(ev => {
     const isHol = ev.kind === 'holiday';
-    const badgeBg = dayColors[ev.dow] || t.primary;
-    const cardBg = isHol ? '#F8FAFC' : t.cardBg;
+    const isOut = ev.kind === 'outreach';
+    const badgeBg = isOut ? '#15803D' : (dayColors[ev.dow] || t.primary);
+    const cardBg = isHol ? '#F8FAFC' : (isOut ? '#F0FDF4' : t.cardBg);
+    const badgeLabel = ev.dow ? `${ev.date} (${ev.dow})` : ev.date;
 
     fillRoundRect(ctx, 64, y, w - 128, rowH, 22, cardBg, t.cardBorder, 3);
-    drawBadge(ctx, `${ev.date} (${ev.dow})`, 88, y + (rowH - 54) / 2, badgeBg, '#FFFFFF', 28, 22, 12);
+    const b = drawBadge(ctx, badgeLabel, 88, y + (rowH - 54) / 2, badgeBg, '#FFFFFF', 26, 20, 12);
 
+    const textX = 88 + b.w + 22;
     ctx.fillStyle = t.dark;
-    ctx.font = `800 ${is11 ? 30 : 34}px "Noto Sans TC", sans-serif`;
+    ctx.font = `800 ${is11 ? 28 : 32}px "Noto Sans TC", sans-serif`;
     ctx.textBaseline = 'middle';
-    // 若文字較長自動換行或微調
-    const maxW = w - 128 - 270;
+    const maxW = (w - 64) - textX - 24;
     const lines = wrapText(ctx, ev.text, maxW);
     if (lines.length === 1) {
-      ctx.fillText(lines[0], 310, y + rowH / 2 + 2);
+      ctx.fillText(lines[0], textX, y + rowH / 2 + 2);
     } else {
       ctx.textBaseline = 'top';
       const lh = 38;
       const topY = y + (rowH - lines.slice(0, 2).length * lh) / 2;
-      lines.slice(0, 2).forEach((l, li) => ctx.fillText(l, 310, topY + li * lh));
+      lines.slice(0, 2).forEach((l, li) => ctx.fillText(l, textX, topY + li * lh));
     }
     y += rowH + gap;
   });
@@ -2036,7 +2076,9 @@ function loadDemoData() {
       { date: '10/9',  dow: 'W5', text: '國定／休假日', kind: 'holiday' },
       { date: '10/14', dow: 'W3', text: '15:30 神放跨科討論會', kind: 'neuro' },
       { date: '10/19', dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' },
-      { date: '10/20', dow: 'W2', text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' }
+      { date: '10/20', dow: 'W2', text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' },
+      { date: '10/26–10/30', dow: '', text: '院外訓練週（W1–W5 同步進行）', kind: 'outreach' },
+      { date: '10/30', dow: 'W5', text: '11:00 院外訓練回饋會議', kind: 'feedback' }
     ],
     weeklyRef: [
       { week: 'W1', time: '09:00', act: '住診教學、個案討論', loc: '7K討論室/病房', doc: '葉鎧境、陳霈容、葉勁甫醫師' },
@@ -2106,6 +2148,11 @@ function loadDemoData() {
   }
   if (state.orientation || state.schedule || state.outreach) {
     renderAllSlides();
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      if (state.orientation || state.schedule || state.outreach) renderAllSlides();
+    });
   }
 })();
 </script>

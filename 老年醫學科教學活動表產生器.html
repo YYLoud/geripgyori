@@ -25182,8 +25182,8 @@ function openScheduleIGGenerator() {
     } else if (weekOutreach.length === 5) {
       specialEvents.push({
         date: weekOutreach[0].date + '–' + weekOutreach[4].date,
-        dow: 'W1–W5',
-        text: '院外訓練週（同步進行）',
+        dow: '',
+        text: '院外訓練週（W1–W5 同步進行）',
         kind: 'outreach'
       });
     } else if (weekOutreach.length > 1) {
@@ -25194,6 +25194,15 @@ function openScheduleIGGenerator() {
         kind: 'outreach'
       });
     }
+  });
+
+  specialEvents.sort(function(a, b) {
+    function key(ev) {
+      var m = (ev.date + ' ' + ev.text).match(/(\d{1,2})\/(\d{1,2})/);
+      var base = m ? (parseInt(m[1], 10) * 100 + parseInt(m[2], 10)) : 9999;
+      return base * 10 + (ev.kind === 'outreach' ? 0 : 1);
+    }
+    return key(a) - key(b);
   });
 
   var clinicEvents = orangeEvents.filter(function(e) {
