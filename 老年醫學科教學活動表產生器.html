@@ -23247,6 +23247,13 @@ body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: va
   outline: none; margin-top: 1px;
 }
 .clinic-select:hover, .clinic-select:focus { border-color: var(--orange); }
+.feedback-time-input {
+  width: 100%; padding: 1px 4px; border-radius: 3px; font-size: 9.5px;
+  border: 1px solid var(--orange-b); background: #fff; color: var(--orange);
+  font-family: 'JetBrains Mono', 'Noto Sans TC', monospace; font-weight: 500;
+  outline: none; margin-top: 1px;
+}
+.feedback-time-input:hover, .feedback-time-input:focus { border-color: var(--orange); }
 .sidebar-clinic-row {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   margin-top: 4px; font-size: 10.5px; color: var(--text2);
@@ -23549,7 +23556,7 @@ var PALETTE = [
   { id:'clinic',  icon:'🩺', label:'門診教學 146診',  subLabel:'08:30 / 146診',   defaultTime:'08:30', defaultNote:'' },
   { id:'clinic87',icon:'🩺', label:'門診教學 188診',  subLabel:'14:00 / 188診',   defaultTime:'14:00', defaultNote:'' },
   { id:'journal', icon:'📖', label:'Journal Reading', subLabel:'09:00・可調整',   defaultTime:'09:00', defaultNote:'' },
-  { id:'feedback',icon:'📋', label:'院外訓練回饋會議', subLabel:'橘色・可調整',  defaultTime:'',      defaultNote:'' },
+  { id:'feedback',icon:'📋', label:'院外訓練回饋會議', subLabel:'11:00-12:00・可調整', defaultTime:'11:00-12:00', defaultNote:'' },
   { id:'custom',  icon:'➕', label:'自訂活動',       subLabel:'自行輸入',        defaultTime:'',      defaultNote:'' },
 ];
 
@@ -23679,6 +23686,8 @@ function renderCalendar() {
           cell.appendChild(orangeChip(ev, '教學住診（任一查房時）'));
         } else if (isClinicEvent(ev)) {
           cell.appendChild(clinicChip(ev));
+        } else if (isFeedbackEvent(ev)) {
+          cell.appendChild(feedbackChip(ev));
         } else {
           var lbl = (ev.time ? ev.time + ' ' : '') + ev.name + (ev.note ? '（'+ev.note+'）' : '');
           cell.appendChild(orangeChip(ev, lbl));
@@ -23899,6 +23908,73 @@ function clinicChip(ev) {
   wrap.addEventListener('mouseleave', function(){ del.style.opacity='0'; });
 
   wrap.appendChild(createClinicSelect(ev, 'clinic-select'));
+
+  wrap.addEventListener('dragstart', function(e) {
+    dragEvId  = ev.id;
+    dragPalId = null;
+    dragEl    = wrap;
+    wrap.style.opacity = '.3';
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', 'ev:'+ev.id);
+  });
+  wrap.addEventListener('dragend', function() {
+    wrap.style.opacity = '';
+    dragEvId = null; dragEl = null;
+    clearDropTargets();
+  });
+  return wrap;
+}
+
+function isFeedbackEvent(ev) {
+  return ev && (ev.paletteId === 'feedback' || (ev.name && (ev.name.indexOf('回饋會議') !== -1 || ev.name.indexOf('院外訓練回饋') !== -1)));
+}
+
+function feedbackChip(ev) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'border:1px solid var(--orange-b);border-radius:3px;background:var(--orange-l);padding:2px 4px;position:relative;';
+  wrap.draggable = true;
+  wrap.dataset.evid = ev.id;
+
+  var row1 = document.createElement('div');
+  row1.style.cssText = 'display:flex;align-items:center;gap:3px;margin-bottom:2px;';
+
+  var lbl = document.createElement('span');
+  lbl.style.cssText = 'font-size:10px;color:var(--orange);font-weight:500;flex:1;';
+  lbl.textContent = ev.name + (ev.note ? '（' + ev.note + '）' : '');
+  row1.appendChild(lbl);
+
+  var del = document.createElement('button');
+  del.className = 'ev-del';
+  del.textContent = '×';
+  del.style.opacity = '0';
+  del.onclick = (function(eid){ return function(e){ e.stopPropagation(); removeEvent(eid); }; })(ev.id);
+  row1.appendChild(del);
+  wrap.appendChild(row1);
+
+  wrap.addEventListener('mouseenter', function(){ del.style.opacity='1'; });
+  wrap.addEventListener('mouseleave', function(){ del.style.opacity='0'; });
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.className = 'feedback-time-input';
+  inp.value = ev.time || '';
+  inp.placeholder = '11:00-12:00';
+  inp.title = '手動輸入院外訓練回饋會議時間';
+
+  ['click', 'mousedown', 'dragstart'].forEach(function(evtName) {
+    inp.addEventListener(evtName, function(e) { e.stopPropagation(); });
+  });
+  inp.addEventListener('focus', function() {
+    wrap.draggable = false;
+  });
+  inp.addEventListener('blur', function() {
+    wrap.draggable = true;
+    ev.time = inp.value.trim();
+  });
+  inp.addEventListener('input', function() {
+    ev.time = inp.value.trim();
+  });
+  wrap.appendChild(inp);
 
   wrap.addEventListener('dragstart', function(e) {
     dragEvId  = ev.id;
@@ -25074,6 +25150,7 @@ function openScheduleIGGenerator() {
   var specialEvents = [];
   var weekdays = ['W1', 'W2', 'W3', 'W4', 'W5'];
   weeks.forEach(function(week) {
+    var weekOutreach = [];
     week.forEach(function(d, di) {
       if (d.getMonth() + 1 !== month) return;
       var dkey = dateKey(d);
@@ -25082,19 +25159,41 @@ function openScheduleIGGenerator() {
         specialEvents.push({ date: dStr, dow: weekdays[di], text: '國定／休假日', kind: 'holiday' });
         return;
       }
+      if (outTraining[dkey]) {
+        weekOutreach.push({ date: dStr, dow: weekdays[di] });
+      }
       if (weekdays[di] === 'W1' && monMeetingTime[dkey] === '13:10') {
         specialEvents.push({ date: dStr, dow: 'W1', text: '13:10 跨團隊會議', kind: 'mon1310' });
       }
       var evs = orangeEvents.filter(function(e) { return e.dateKey === dkey; });
       evs.forEach(function(ev) {
         var text = (ev.time ? ev.time + ' ' : '') + ev.name + (ev.note ? '(' + ev.note + ')' : '');
-        if (text.indexOf('神放跨科討論會') !== -1) {
+        if (ev.paletteId === 'feedback' || text.indexOf('回饋會議') !== -1 || text.indexOf('院外訓練回饋') !== -1) {
+          specialEvents.push({ date: dStr, dow: weekdays[di], text: text, kind: 'feedback' });
+        } else if (text.indexOf('神放跨科討論會') !== -1) {
           specialEvents.push({ date: dStr, dow: weekdays[di], text: text, kind: 'neuro' });
         } else if (/journal\s*reading/i.test(text)) {
           specialEvents.push({ date: dStr, dow: weekdays[di], text: 'Journal Reading（09:00 晨會時段）', kind: 'journal' });
         }
       });
     });
+    if (weekOutreach.length === 1) {
+      specialEvents.push({ date: weekOutreach[0].date, dow: weekOutreach[0].dow, text: '院外訓練（同步進行）', kind: 'outreach' });
+    } else if (weekOutreach.length === 5) {
+      specialEvents.push({
+        date: weekOutreach[0].date + '–' + weekOutreach[4].date,
+        dow: 'W1–W5',
+        text: '院外訓練週（同步進行）',
+        kind: 'outreach'
+      });
+    } else if (weekOutreach.length > 1) {
+      specialEvents.push({
+        date: '院外訓練',
+        dow: '',
+        text: weekOutreach.map(function(x) { return x.date + '(' + x.dow + ')'; }).join('、') + ' 院外訓練',
+        kind: 'outreach'
+      });
+    }
   });
 
   var clinicEvents = orangeEvents.filter(function(e) {
